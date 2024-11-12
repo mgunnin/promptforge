@@ -1,59 +1,55 @@
-import type { Metadata } from "next"
-import localFont from "next/font/local"
-import "./globals.css"
+import { MainNav } from "@/components/main-nav"
+import { SessionProvider } from "@/components/session-provider"
 import { ThemeProvider } from "@/components/theme-provider"
-import { ThemeToggle } from "@/components/theme-toggle"
+import { UserNav } from "@/components/user-nav"
 import { PromptProvider } from "@/contexts/prompt-context"
-
-const geistSans = localFont({
-  src: "./fonts/GeistVF.woff",
-  variable: "--font-geist-sans",
-  weight: "100 900",
-})
-
-const geistMono = localFont({
-  src: "./fonts/GeistMonoVF.woff",
-  variable: "--font-geist-mono",
-  weight: "100 900",
-})
+import { authOptions } from "@/lib/auth"
+import type { Metadata } from "next"
+import { getServerSession } from "next-auth"
+import "./globals.css"
 
 export const metadata: Metadata = {
   title: "PromptForge",
   description: "Modern prompt management application for AI development",
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode
-}>) {
+}) {
+  const session = await getServerSession(authOptions)
+
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen`}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <PromptProvider>
-            <div className="relative flex min-h-screen flex-col">
-              <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-                <div className="container flex h-14 items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <h1 className="font-semibold">PromptForge</h1>
+      <body>
+        <PromptProvider>
+          <SessionProvider session={session}>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="system"
+              enableSystem
+              disableTransitionOnChange
+            >
+              <div className="relative flex min-h-screen flex-col">
+                <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+                  <div className="container flex h-14 items-center">
+                    <div className="mr-4 flex items-center space-x-2">
+                      <span className="font-bold">PromptForge</span>
+                    </div>
+                    <MainNav />
+                    <div className="ml-auto flex items-center space-x-4">
+                      <UserNav />
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <ThemeToggle />
-                  </div>
-                </div>
-              </header>
-              <main className="flex-1">
-                {children}
-              </main>
-            </div>
-          </PromptProvider>
-        </ThemeProvider>
+                </header>
+                <main className="flex-1">
+                  {children}
+                </main>
+              </div>
+            </ThemeProvider>
+          </SessionProvider>
+        </PromptProvider>
       </body>
     </html>
   )
