@@ -1,15 +1,13 @@
-import OpenAI from "openai"
 import { AIAnalysis, LLMModel } from "@/types/prompt"
+import OpenAI from "openai"
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
+  dangerouslyAllowBrowser: true,
 })
 
 export class AIService {
-  static async generateCompletion(
-    prompt: string,
-    model: LLMModel = "gpt-3.5-turbo"
-  ) {
+  static async generateCompletion(prompt: string, model: LLMModel = "gpt-4") {
     try {
       if (model.startsWith("gpt")) {
         const response = await openai.chat.completions.create({

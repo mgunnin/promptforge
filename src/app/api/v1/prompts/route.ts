@@ -8,11 +8,7 @@ const createPromptSchema = z.object({
   content: z.string().min(1, "Content is required"),
   description: z.string().optional(),
   tags: z.array(z.string()),
-  model: z.enum([
-    "gpt-4",
-    "gpt-3.5-turbo",
-    "claude-3-5-sonnet-20241022",
-  ] as const),
+  model: z.enum(["gpt-4", "gpt-4o", "claude-3-5-sonnet-20241022"] as const),
   category: z.string().optional(),
 })
 
@@ -84,7 +80,7 @@ const updatePromptSchema = z.object({
   description: z.string().optional(),
   tags: z.array(z.string()).optional(),
   model: z
-    .enum(["gpt-4", "gpt-3.5-turbo", "claude-3-5-sonnet-20241022"] as const)
+    .enum(["gpt-4", "gpt-4o", "claude-3-5-sonnet-20241022"] as const)
     .optional(),
   category: z.string().optional(),
 })

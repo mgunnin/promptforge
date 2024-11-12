@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from "next/server"
-import { getToken } from "next-auth/jwt"
-import { z } from "zod"
-import OpenAI from "openai"
 import { prisma } from "@/lib/prisma"
 import { PromptService } from "@/lib/services/prompt.service"
 import { Prisma } from "@prisma/client"
+import { getToken } from "next-auth/jwt"
+import { NextRequest, NextResponse } from "next/server"
+import OpenAI from "openai"
+import { z } from "zod"
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -13,7 +13,7 @@ const openai = new OpenAI({
 const testPromptSchema = z.object({
   promptId: z.string(),
   content: z.string(),
-  model: z.enum(["gpt-4", "gpt-3.5-turbo", "claude-2"] as const),
+  model: z.enum(["gpt-4", "gpt-4o", "claude-3-5-sonnet-20241022"] as const),
 })
 
 type JsonMetrics = {
@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
     try {
       switch (model) {
         case "gpt-4":
-        case "gpt-3.5-turbo": {
+        case "gpt-4o": {
           const response = await openai.chat.completions.create({
             model,
             messages: [{ role: "user", content }],
@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
           tokenUsage = response.usage?.total_tokens || 0
           break
         }
-        case "claude-2": {
+        case "claude-3-5-sonnet-20241022": {
           // TODO: Implement Claude integration
           throw new Error("Claude integration not implemented yet")
         }

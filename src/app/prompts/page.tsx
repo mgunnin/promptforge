@@ -81,7 +81,13 @@ export default async function PromptsPage() {
         redirect("/login")
     }
 
-    const rawPrompts = (await PromptService.listPrompts(session.user.id)) as unknown as RawPromptData[]
+    const { prompts: rawPrompts } = (await PromptService.listPrompts(
+        session.user.id
+    )) as unknown as {
+        prompts: RawPromptData[],
+        pagination: { page: number; limit: number; total: number; pages: number }
+    }
+
     const prompts: PromptWithMetrics[] = rawPrompts.map(prompt => ({
         id: prompt.id,
         name: prompt.name,

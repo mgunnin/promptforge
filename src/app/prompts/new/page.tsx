@@ -1,10 +1,6 @@
 "use client"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import {
     Card,
     CardContent,
@@ -12,7 +8,11 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
 import { AIService } from "@/lib/services/ai.service"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { useState } from "react"
 
 interface AIAnalysis {
     category: string
@@ -189,8 +189,8 @@ export default function NewPrompt() {
                                     className="w-full px-3 py-2 bg-background border rounded-md"
                                 >
                                     <option value="gpt-4">GPT-4</option>
-                                    <option value="gpt-3.5-turbo">GPT-3.5</option>
-                                    <option value="claude-2">Claude</option>
+                                    <option value="gpt-4o">GPT-4o</option>
+                                    <option value="claude-3-5-sonnet-20241022">Claude</option>
                                 </select>
                             </div>
                         </CardContent>

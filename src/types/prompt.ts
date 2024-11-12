@@ -1,4 +1,4 @@
-export type LLMModel = "gpt-4" | "gpt-3.5-turbo" | "claude-3-5-sonnet-20241022"
+export type LLMModel = "gpt-4" | "gpt-4o" | "claude-3-5-sonnet-20241022"
 
 export interface Prompt {
   id: string
