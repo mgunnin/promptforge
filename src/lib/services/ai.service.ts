@@ -94,7 +94,7 @@ export class AIService {
     return response || "Could not generate test cases"
   }
 
-  static async analyzePromptMetrics(metrics: any): Promise<string> {
+  static async analyzePromptMetrics(metrics: unknown): Promise<string> {
     const prompt = `
       Analyze these prompt metrics and provide insights:
       ---
