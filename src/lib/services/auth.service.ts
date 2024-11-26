@@ -7,8 +7,8 @@ export interface ApiKeyWithDates {
   name: string
   key: string
   createdAt: Date
-  lastUsed: Date | null
-  expiresAt: Date | null
+  updatedAt: Date
+  userId: string
 }
 
 export class AuthService {
@@ -32,7 +32,7 @@ export class AuthService {
       return null
     }
 
-    const { password: _, ...userWithoutPassword } = user
+    const { ...userWithoutPassword } = user
     return userWithoutPassword
   }
 
@@ -114,7 +114,7 @@ export class AuthService {
     await prisma.apiKey.update({
       where: { id: apiKey.id },
       data: {
-        lastUsed: new Date(),
+        updatedAt: new Date(),
       },
     })
 
@@ -133,8 +133,8 @@ export class AuthService {
         name: true,
         key: true,
         createdAt: true,
-        lastUsed: true,
-        expiresAt: true,
+        updatedAt: true,
+        userId: true,
       },
       orderBy: {
         createdAt: "desc",
@@ -144,19 +144,12 @@ export class AuthService {
     return apiKeys
   }
 
-  static async createApiKey(
-    userId: string,
-    name: string,
-    expiresInDays?: number
-  ) {
+  static async createApiKey(userId: string, name: string) {
     const apiKey = await prisma.apiKey.create({
       data: {
         name,
         key: `pk_${userId}_${Math.random().toString(36).substring(2)}`,
         userId,
-        expiresAt: expiresInDays
-          ? new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000)
-          : null,
       },
     })
 
@@ -196,7 +189,7 @@ export class AuthService {
       where: { id },
       data: {
         key: `pk_${userId}_${Math.random().toString(36).substring(2)}`,
-        lastUsed: null,
+        updatedAt: new Date(),
       },
     })
 

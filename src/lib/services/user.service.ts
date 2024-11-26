@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma"
-import bcrypt from "bcryptjs"
 import { Prisma } from "@prisma/client"
+import bcrypt from "bcryptjs"
 
 export class UserService {
   static async createUser(data: {
@@ -61,13 +61,9 @@ export class UserService {
         },
         teams: {
           select: {
-            team: {
-              select: {
-                id: true,
-                name: true,
-                description: true,
-              },
-            },
+            id: true,
+            name: true,
+            description: true,
           },
         },
       },
@@ -77,19 +73,16 @@ export class UserService {
       throw new Error("User not found")
     }
 
-    return {
-      ...user,
-      teams: user.teams.map((membership) => membership.team),
-    }
+    return user
   }
 
   static async updateUser(
     id: string,
-    data: {
-      name?: string
-      email?: string
-      password?: string
-    }
+    data: Partial<{
+      name: string
+      email: string
+      password: string
+    }>
   ) {
     if (data.email) {
       const existingUser = await prisma.user.findFirst({
@@ -104,7 +97,7 @@ export class UserService {
       }
     }
 
-    const updateData: any = { ...data }
+    const updateData: Prisma.UserUpdateInput = { ...data }
     if (data.password) {
       updateData.password = await bcrypt.hash(data.password, 10)
     }

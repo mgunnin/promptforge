@@ -1,147 +1,173 @@
-import { AIAnalysis, LLMModel } from "@/types/prompt"
 import OpenAI from "openai"
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
-  dangerouslyAllowBrowser: true,
 })
 
-export class AIService {
-  static async generateCompletion(prompt: string, model: LLMModel = "gpt-4") {
-    try {
-      if (model.startsWith("gpt")) {
-        const response = await openai.chat.completions.create({
-          model,
-          messages: [{ role: "user", content: prompt }],
-        })
-        return response.choices[0]?.message?.content || ""
-      } else if (model.startsWith("claude")) {
-        // TODO: Implement Claude integration when needed
-        throw new Error("Claude integration not implemented yet")
-      }
-      throw new Error(`Unsupported model: ${model}`)
-    } catch (error) {
-      console.error("Error generating completion:", error)
-      throw error
-    }
-  }
+interface AIAnalysis {
+  category: string
+  tags: string[]
+  suggestedName: string
+  description: string
+}
 
+interface Suggestion {
+  text: string
+  description: string
+}
+
+export class AIService {
   static async analyzePrompt(content: string): Promise<AIAnalysis> {
-    const prompt = `
-      Analyze this prompt and provide insights in JSON format:
-      ---
-      ${content}
-      ---
-      Return a JSON object with:
-      - suggestedName: A concise name for the prompt
-      - description: A clear description of what the prompt does
-      - category: The primary category this prompt belongs to
-      - tags: An array of relevant tags (max 5)
-      - confidence: A number between 0 and 1 indicating analysis confidence
-      - suggestions: An array of improvement suggestions
-    `
-    const response = await this.generateCompletion(prompt, "gpt-4")
     try {
-      return JSON.parse(response) as AIAnalysis
-    } catch (error) {
-      console.error("Error parsing AI analysis:", error)
+      const response = await openai.chat.completions.create({
+        model: "gpt-4",
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are an AI assistant that analyzes prompts and provides structured information about them.",
+          },
+          {
+            role: "user",
+            content: `Analyze this prompt and provide:
+              1. A suitable category
+              2. Relevant tags
+              3. A suggested name
+              4. A brief description
+              
+              Prompt: ${content}`,
+          },
+        ],
+      })
+
+      const analysis = response.choices[0]?.message?.content
+      if (!analysis) throw new Error("No analysis generated")
+
+      // Parse the analysis into structured data
+      const lines = analysis.split("\n")
+      const category = lines.find((l) => l.includes("category"))?.split(":")[1]?.trim() || "Uncategorized"
+      const tags = lines
+        .find((l) => l.includes("tags"))
+        ?.split(":")
+        [1]?.split(",")
+        .map((t) => t.trim()) || []
+      const name = lines.find((l) => l.includes("name"))?.split(":")[1]?.trim() || "Untitled Prompt"
+      const description = lines.find((l) => l.includes("description"))?.split(":")[1]?.trim() || ""
+
       return {
-        suggestedName: "Untitled Prompt",
-        description: "No description available",
-        category: "Uncategorized",
-        tags: [],
-        confidence: 0,
-        suggestions: ["Could not analyze prompt"],
+        category,
+        tags,
+        suggestedName: name,
+        description,
       }
+    } catch (error) {
+      console.error("Error analyzing prompt:", error)
+      throw new Error("Failed to analyze prompt")
     }
   }
 
   static async suggestImprovements(content: string): Promise<string> {
-    const prompt = `
-      Analyze this prompt and suggest improvements:
-      ---
-      ${content}
-      ---
-      Consider:
-      1. Clarity and specificity
-      2. Context and background information
-      3. Constraints and requirements
-      4. Examples or references
-      5. Potential ambiguities or edge cases
+    try {
+      const response = await openai.chat.completions.create({
+        model: "gpt-4",
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are an AI assistant that suggests improvements for prompts.",
+          },
+          {
+            role: "user",
+            content: `Suggest improvements for this prompt, focusing on:
+              1. Clarity and specificity
+              2. Context and constraints
+              3. Output format
+              4. Error handling
+              
+              Prompt: ${content}`,
+          },
+        ],
+      })
 
-      Format your response as a bulleted list with clear, actionable suggestions.
-    `
-    const response = await this.generateCompletion(prompt, "gpt-4")
-    return response || "Could not generate improvements"
+      return response.choices[0]?.message?.content || "No suggestions available"
+    } catch (error) {
+      console.error("Error suggesting improvements:", error)
+      throw new Error("Failed to suggest improvements")
+    }
   }
 
   static async generateTestCases(content: string): Promise<string> {
-    const prompt = `
-      Generate test cases for this prompt:
-      ---
-      ${content}
-      ---
-      Include:
-      1. Happy path scenarios
-      2. Edge cases
-      3. Error cases
-      4. Different input variations
-      5. Expected outputs
-
-      Format your response as a numbered list with clear test scenarios and expected outcomes.
-    `
-    const response = await this.generateCompletion(prompt, "gpt-4")
-    return response || "Could not generate test cases"
-  }
-
-  static async analyzePromptMetrics(metrics: unknown): Promise<string> {
-    const prompt = `
-      Analyze these prompt metrics and provide insights:
-      ---
-      ${JSON.stringify(metrics, null, 2)}
-      ---
-      Consider:
-      1. Performance trends
-      2. Success rate patterns
-      3. Cost efficiency
-      4. Areas for optimization
-      5. Recommendations for improvement
-
-      Format your response as a clear analysis with sections for each consideration.
-    `
-    const response = await this.generateCompletion(prompt, "gpt-4")
-    return response || "Could not analyze metrics"
-  }
-
-  static async categorizePrompt(content: string): Promise<{
-    category: string
-    tags: string[]
-    confidence: number
-  }> {
-    const prompt = `
-      Analyze this prompt and suggest appropriate categories and tags:
-      ---
-      ${content}
-      ---
-      Return a JSON object with:
-      - category: The primary category
-      - tags: An array of relevant tags (max 5)
-      - confidence: A number between 0 and 1 indicating confidence
-    `
-    const response = await this.generateCompletion(prompt, "gpt-4")
     try {
-      return JSON.parse(response) as {
-        category: string
-        tags: string[]
-        confidence: number
-      }
+      const response = await openai.chat.completions.create({
+        model: "gpt-4",
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are an AI assistant that generates test cases for prompts.",
+          },
+          {
+            role: "user",
+            content: `Generate test cases for this prompt, including:
+              1. Happy path scenarios
+              2. Edge cases
+              3. Error cases
+              4. Expected outputs
+              
+              Prompt: ${content}`,
+          },
+        ],
+      })
+
+      return response.choices[0]?.message?.content || "No test cases generated"
     } catch (error) {
-      console.error("Error parsing categorization:", error)
-      return {
-        category: "Uncategorized",
-        tags: [],
-        confidence: 0,
-      }
+      console.error("Error generating test cases:", error)
+      throw new Error("Failed to generate test cases")
+    }
+  }
+
+  static async getSuggestions(context: string): Promise<Suggestion[]> {
+    try {
+      const response = await openai.chat.completions.create({
+        model: "gpt-4",
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are an AI assistant that suggests variables and templates for prompts.",
+          },
+          {
+            role: "user",
+            content: `Based on this prompt context, suggest relevant variables or templates:
+
+              Context: ${context}
+              
+              Provide suggestions in this format:
+              - text: The variable or template text
+              - description: A brief description of what it does`,
+          },
+        ],
+      })
+
+      const content = response.choices[0]?.message?.content
+      if (!content) return []
+
+      // Parse the suggestions into structured data
+      const suggestions: Suggestion[] = content
+        .split("\n")
+        .filter((line) => line.includes("text:"))
+        .map((line) => {
+          const [text, description] = line.split(" - description: ")
+          return {
+            text: text.replace("- text: ", "").trim(),
+            description: description?.trim() || "",
+          }
+        })
+
+      return suggestions
+    } catch (error) {
+      console.error("Error getting suggestions:", error)
+      return []
     }
   }
 }

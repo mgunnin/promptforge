@@ -1,6 +1,7 @@
 import { MainNav } from "@/components/main-nav"
 import { SessionProvider } from "@/components/session-provider"
 import { ThemeProvider } from "@/components/theme-provider"
+import { Toaster } from "@/components/toaster"
 import { UserNav } from "@/components/user-nav"
 import { PromptProvider } from "@/contexts/prompt-context"
 import { authOptions } from "@/lib/auth"
@@ -22,7 +23,7 @@ export default async function RootLayout({
 
   return (
     <html lang="en" suppressHydrationWarning>
-      <body>
+      <body className="min-h-screen bg-background">
         <PromptProvider>
           <SessionProvider session={session}>
             <ThemeProvider
@@ -33,20 +34,16 @@ export default async function RootLayout({
             >
               <div className="relative flex min-h-screen flex-col">
                 <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-                  <div className="container flex h-14 items-center">
-                    <div className="mr-4 flex items-center space-x-2">
-                      <span className="font-bold">PromptForge</span>
-                    </div>
+                  <div className="container flex h-14 items-center px-8">
                     <MainNav />
                     <div className="ml-auto flex items-center space-x-4">
                       <UserNav />
                     </div>
                   </div>
                 </header>
-                <main className="flex-1">
-                  {children}
-                </main>
+                <main className="flex-1 px-8">{children}</main>
               </div>
+              <Toaster />
             </ThemeProvider>
           </SessionProvider>
         </PromptProvider>
