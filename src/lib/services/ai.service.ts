@@ -45,14 +45,27 @@ export class AIService {
 
       // Parse the analysis into structured data
       const lines = analysis.split("\n")
-      const category = lines.find((l) => l.includes("category"))?.split(":")[1]?.trim() || "Uncategorized"
-      const tags = lines
-        .find((l) => l.includes("tags"))
-        ?.split(":")
-        [1]?.split(",")
-        .map((t) => t.trim()) || []
-      const name = lines.find((l) => l.includes("name"))?.split(":")[1]?.trim() || "Untitled Prompt"
-      const description = lines.find((l) => l.includes("description"))?.split(":")[1]?.trim() || ""
+      const category =
+        lines
+          .find((l) => l.includes("category"))
+          ?.split(":")[1]
+          ?.trim() || "Uncategorized"
+      const tags =
+        lines
+          .find((l) => l.includes("tags"))
+          ?.split(":")[1]
+          ?.split(",")
+          .map((t) => t.trim()) || []
+      const name =
+        lines
+          .find((l) => l.includes("name"))
+          ?.split(":")[1]
+          ?.trim() || "Untitled Prompt"
+      const description =
+        lines
+          .find((l) => l.includes("description"))
+          ?.split(":")[1]
+          ?.trim() || ""
 
       return {
         category,
@@ -66,33 +79,42 @@ export class AIService {
     }
   }
 
-  static async suggestImprovements(content: string): Promise<string> {
+  static async suggestImprovements(
+    content: string,
+    model: string = "gpt-4"
+  ): Promise<string> {
     try {
       const response = await openai.chat.completions.create({
-        model: "gpt-4",
+        model,
         messages: [
           {
             role: "system",
             content:
-              "You are an AI assistant that suggests improvements for prompts.",
+              "You are an AI assistant that optimizes prompts for better results. Return ONLY the optimized prompt without any explanations.",
           },
           {
             role: "user",
-            content: `Suggest improvements for this prompt, focusing on:
-              1. Clarity and specificity
-              2. Context and constraints
-              3. Output format
-              4. Error handling
+            content: `Optimize this prompt by:
+              1. Improving clarity and specificity
+              2. Adding necessary context and constraints
+              3. Specifying desired output format
+              4. Adding error handling instructions
+              5. Making it more concise and effective
               
-              Prompt: ${content}`,
+              Original Prompt: ${content}
+              
+              Return ONLY the optimized prompt, no explanations.`,
           },
         ],
+        temperature: 0.7,
       })
 
-      return response.choices[0]?.message?.content || "No suggestions available"
+      const optimizedContent = response.choices[0]?.message?.content
+      if (!optimizedContent) throw new Error("No optimization generated")
+      return optimizedContent
     } catch (error) {
       console.error("Error suggesting improvements:", error)
-      throw new Error("Failed to suggest improvements")
+      throw new Error("Failed to optimize prompt")
     }
   }
 
