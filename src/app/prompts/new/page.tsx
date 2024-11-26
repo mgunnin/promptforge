@@ -17,11 +17,11 @@ import { useToast } from "@/components/ui/use-toast"
 import { useState } from "react"
 
 const AVAILABLE_MODELS = [
-    { id: "gpt-4", name: "GPT-4" },
+    { id: "gpt-4o", name: "GPT-4o" },
     { id: "gpt-4-turbo", name: "GPT-4 Turbo" },
     { id: "gpt-3.5-turbo", name: "GPT-3.5 Turbo" },
     { id: "claude-3-opus", name: "Claude 3 Opus" },
-    { id: "claude-3-sonnet", name: "Claude 3 Sonnet" },
+    { id: "claude-3-sonnet-20241022", name: "Claude 3.5 Sonnet" },
     { id: "gemini-pro", name: "Gemini Pro" },
     { id: "mixtral-8x7b", name: "Mixtral 8x7B" },
     { id: "llama-2-70b", name: "Llama 2 70B" },
@@ -194,7 +194,7 @@ export default function NewPromptPage() {
                 <Card className="p-6">
                     <div className="grid gap-4">
                         <div>
-                            <Label htmlFor="name">Name (AI Generated)</Label>
+                            <Label htmlFor="name">Name</Label>
                             <Input
                                 id="name"
                                 value={name}
@@ -207,7 +207,7 @@ export default function NewPromptPage() {
                         </div>
 
                         <div>
-                            <Label htmlFor="description">Description (AI Generated)</Label>
+                            <Label htmlFor="description">Description</Label>
                             <Textarea
                                 id="description"
                                 value={description}

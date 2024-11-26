@@ -193,7 +193,6 @@ export function PromptSearch() {
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="">All Models</SelectItem>
-                        <SelectItem value="gpt-4">GPT-4</SelectItem>
                         <SelectItem value="gpt-4o">GPT-4o</SelectItem>
                         <SelectItem value="claude-3-5-sonnet-20241022">Claude</SelectItem>
                     </SelectContent>

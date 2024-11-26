@@ -44,7 +44,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>
 
 const defaultValues: Partial<FormValues> = {
-    model: "gpt-4",
+    model: "gpt-4o",
     temperature: 0.7,
     maxTokens: 1024,
 }
@@ -169,9 +169,9 @@ export function TestEnvironment({ userId }: TestEnvironmentProps) {
                                                 </SelectTrigger>
                                             </FormControl>
                                             <SelectContent>
-                                                <SelectItem value="gpt-4">GPT-4</SelectItem>
-                                                <SelectItem value="gpt-3.5-turbo">
-                                                    GPT-3.5 Turbo
+                                                <SelectItem value="gpt-4o">GPT-4o</SelectItem>
+                                                <SelectItem value="claude-3-5-sonnet-20241022">
+                                                    Claude 3.5 Sonnet
                                                 </SelectItem>
                                             </SelectContent>
                                         </Select>

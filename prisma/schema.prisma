@@ -42,14 +42,34 @@ model Team {
   prompts     Prompt[]
 }
 
+enum PromptCategory {
+  General
+  CodeGeneration
+  ContentCreation
+  DataAnalysis
+  Translation
+  Summarization
+  QuestionAnswering
+  TaskPlanning
+  Roleplay
+  SystemDesign
+  Debugging
+  Testing
+  Documentation
+  CreativeWriting
+  Business
+  Education
+  Research
+}
+
 model Prompt {
-  id          String       @id @default(cuid())
+  id          String        @id @default(cuid())
   name        String
   content     String
   description String?
   model       String
   tags        String[]
-  category    String?
+  category    PromptCategory @default(General)
   metrics     Json?
   embedding   Unsupported("vector(1536)")?
   createdAt   DateTime     @default(now())

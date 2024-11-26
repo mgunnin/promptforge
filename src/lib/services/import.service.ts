@@ -129,7 +129,7 @@ export class ImportService {
                 name:
                   prompt.name || analysis.suggestedName || "Untitled Prompt",
                 description: prompt.description || analysis.description || "",
-                model: prompt.model || "gpt-4",
+                model: prompt.model || "gpt-4o",
                 tags: prompt.tags || analysis.tags || [],
                 category:
                   prompt.category || analysis.category || "Uncategorized",
@@ -145,7 +145,7 @@ export class ImportService {
                 content: prompt.content,
                 name: prompt.name,
                 description: prompt.description || "",
-                model: prompt.model || "gpt-4",
+                model: prompt.model || "gpt-4o",
                 tags: prompt.tags,
                 category: prompt.category,
                 userId,
