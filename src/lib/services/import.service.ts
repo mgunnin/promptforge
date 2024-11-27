@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma"
+import { PromptCategory } from "@prisma/client"
 import { AIService } from "./ai.service"
 
 interface ImportedPrompt {
@@ -7,7 +8,7 @@ interface ImportedPrompt {
   description?: string
   model?: string
   tags?: string[]
-  category?: string
+  category?: PromptCategory
 }
 
 export class ImportService {
@@ -41,7 +42,10 @@ export class ImportService {
         description: typeof item === "object" ? item.description : undefined,
         model: typeof item === "object" ? item.model : undefined,
         tags: typeof item === "object" ? item.tags : undefined,
-        category: typeof item === "object" ? item.category : undefined,
+        category:
+          typeof item === "object"
+            ? (item.category as PromptCategory)
+            : undefined,
       }))
     }
     throw new Error("Invalid JSON format")
@@ -85,7 +89,7 @@ export class ImportService {
             prompt.tags = value.split(";").map((t) => t.trim())
             break
           case "category":
-            prompt.category = value
+            prompt.category = value as PromptCategory
             break
         }
       })
@@ -131,8 +135,9 @@ export class ImportService {
                 description: prompt.description || analysis.description || "",
                 model: prompt.model || "gpt-4o",
                 tags: prompt.tags || analysis.tags || [],
-                category:
-                  prompt.category || analysis.category || "Uncategorized",
+                category: (prompt.category ||
+                  analysis.category ||
+                  "General") as PromptCategory,
                 userId,
               },
             })

@@ -1,8 +1,8 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useEffect, useRef, useState } from "react"
 
 interface PromptEditorProps {
   content: string
@@ -156,7 +156,7 @@ export function PromptEditor({
             disabled={isAnalyzing || !content}
             className="w-full mt-4"
           >
-            {isAnalyzing ? "Analyzing..." : "Analyze & Improve"}
+            {isAnalyzing ? "Analyzing..." : "Analyze"}
           </Button>
         )}
       </CardContent>

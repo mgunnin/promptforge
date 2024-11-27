@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma"
-import { Prisma } from "@prisma/client"
+import { Prisma, PromptCategory } from "@prisma/client"
 import OpenAI from "openai"
 
 const openai = new OpenAI({
@@ -67,7 +67,7 @@ export class SearchService {
           whereClause.tags = { hasEvery: filters.tags }
         }
         if (filters.category) {
-          whereClause.category = filters.category
+          whereClause.category = filters.category as PromptCategory
         }
         if (filters.model) {
           whereClause.model = filters.model
@@ -186,7 +186,7 @@ export class SearchService {
           whereClause.tags = { hasEvery: filters.tags }
         }
         if (filters.category) {
-          whereClause.category = filters.category
+          whereClause.category = filters.category as PromptCategory
         }
         if (filters.model) {
           whereClause.model = filters.model

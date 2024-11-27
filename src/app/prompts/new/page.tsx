@@ -1,6 +1,7 @@
 "use client"
 
 import { PromptEditor } from "@/components/prompt-editor"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -14,6 +15,8 @@ import {
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/use-toast"
+import { PromptCategory } from "@prisma/client"
+import { X } from "lucide-react"
 import { useState } from "react"
 
 const AVAILABLE_MODELS = [
@@ -27,11 +30,33 @@ const AVAILABLE_MODELS = [
     { id: "llama-2-70b", name: "Llama 2 70B" },
 ] as const
 
+const PROMPT_CATEGORIES = [
+    { id: "General", name: "General" },
+    { id: "CodeGeneration", name: "Code Generation" },
+    { id: "ContentCreation", name: "Content Creation" },
+    { id: "DataAnalysis", name: "Data Analysis" },
+    { id: "Translation", name: "Translation" },
+    { id: "Summarization", name: "Summarization" },
+    { id: "QuestionAnswering", name: "Question Answering" },
+    { id: "TaskPlanning", name: "Task Planning" },
+    { id: "Roleplay", name: "Roleplay" },
+    { id: "SystemDesign", name: "System Design" },
+    { id: "Debugging", name: "Debugging" },
+    { id: "Testing", name: "Testing" },
+    { id: "Documentation", name: "Documentation" },
+    { id: "CreativeWriting", name: "Creative Writing" },
+    { id: "Business", name: "Business" },
+    { id: "Education", name: "Education" },
+    { id: "Research", name: "Research" },
+] as const
+
 export default function NewPromptPage() {
     const [content, setContent] = useState("")
     const [name, setName] = useState("")
     const [description, setDescription] = useState("")
     const [model, setModel] = useState<string>(AVAILABLE_MODELS[0].id)
+    const [category, setCategory] = useState<PromptCategory>("General")
+    const [tags, setTags] = useState<string[]>([])
     const [isAnalyzing, setIsAnalyzing] = useState(false)
     const [isOptimizing, setIsOptimizing] = useState(false)
     const { toast } = useToast()
@@ -59,6 +84,8 @@ export default function NewPromptPage() {
 
             setName(analysis.suggestedName || "")
             setDescription(analysis.description || "")
+            setCategory(analysis.category || "General")
+            setTags(analysis.tags || [])
 
             toast({
                 title: "Prompt Analyzed",
@@ -124,8 +151,8 @@ export default function NewPromptPage() {
             return
         }
 
-        // Auto-analyze if name or description is empty
-        if (!name || !description) {
+        // Auto-analyze if metadata is empty
+        if (!name || !description || !category || tags.length === 0) {
             await handleAnalyze()
         }
 
@@ -138,6 +165,8 @@ export default function NewPromptPage() {
                     content,
                     description,
                     model,
+                    category,
+                    tags,
                 }),
             })
 
@@ -155,6 +184,10 @@ export default function NewPromptPage() {
                 variant: "destructive",
             })
         }
+    }
+
+    const removeTag = (tagToRemove: string) => {
+        setTags(tags.filter((tag) => tag !== tagToRemove))
     }
 
     return (
@@ -202,7 +235,6 @@ export default function NewPromptPage() {
                                     setName(e.target.value)
                                 }
                                 placeholder="Click 'Analyze' to generate a name"
-                                readOnly
                             />
                         </div>
 
@@ -215,8 +247,48 @@ export default function NewPromptPage() {
                                     setDescription(e.target.value)
                                 }
                                 placeholder="Click 'Analyze' to generate a description"
-                                readOnly
                             />
+                        </div>
+
+                        <div>
+                            <Label htmlFor="category">Category</Label>
+                            <Select
+                                value={category}
+                                onValueChange={(value: PromptCategory) => setCategory(value)}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select a category" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {PROMPT_CATEGORIES.map((cat) => (
+                                        <SelectItem key={cat.id} value={cat.id}>
+                                            {cat.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div>
+                            <Label>Tags</Label>
+                            <div className="flex flex-wrap gap-2 mt-2">
+                                {tags.map((tag) => (
+                                    <Badge key={tag} variant="secondary">
+                                        {tag}
+                                        <button
+                                            onClick={() => removeTag(tag)}
+                                            className="ml-1 hover:text-destructive"
+                                        >
+                                            <X className="h-3 w-3" />
+                                        </button>
+                                    </Badge>
+                                ))}
+                                {tags.length === 0 && (
+                                    <p className="text-sm text-muted-foreground">
+                                        Click &apos;Analyze&apos; to generate tags
+                                    </p>
+                                )}
+                            </div>
                         </div>
 
                         <div>
@@ -235,7 +307,7 @@ export default function NewPromptPage() {
                             </Select>
                         </div>
 
-                        <Button onClick={handleSave} disabled={!content}>
+                        <Button onClick={handleSave} className="w-full">
                             Save Prompt
                         </Button>
                     </div>

@@ -71,7 +71,7 @@ export interface AIAnalysis {
 
 export interface PromptTest {
   id: string
-  input: Record<string, any>
+  input: Record<string, string>
   output: string
   metrics: PromptTestMetrics
   createdAt: Date

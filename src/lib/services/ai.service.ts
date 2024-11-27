@@ -1,3 +1,4 @@
+import { PromptCategory } from "@prisma/client"
 import OpenAI from "openai"
 
 const openai = new OpenAI({
@@ -6,25 +7,43 @@ const openai = new OpenAI({
 
 const PROMPT_CATEGORIES = [
   "Business",
-  "Code Generation",
-  "Content Creation",
-  "Creative Writing",
-  "Data Analysis",
+  "CodeGeneration",
+  "ContentCreation",
+  "CreativeWriting",
+  "CustomerSupport",
+  "DataAnalysis",
   "Debugging",
+  "Design",
   "Documentation",
   "Education",
+  "Entertainment",
+  "EthicsAndPhilosophy",
   "General",
-  "Question Answering",
+  "KnowledgeManagement",
+  "Legal",
+  "Marketing",
+  "MediaProduction",
+  "NetworkingAndOutreach",
+  "Optimization",
+  "PersonalDevelopment",
+  "Presentation",
+  "Productivity",
+  "ProjectManagement",
+  "QuestionAnswering",
   "Research",
   "Roleplay",
+  "Sales",
+  "ScienceExploration",
+  "SocialMedia",
   "Summarization",
-  "System Design",
-  "Task Planning",
+  "SystemDesign",
+  "TaskPlanning",
   "Testing",
   "Translation",
+  "UserInterfaceDesign",
+  "UXResearch",
+  "Visualization",
 ] as const
-
-export type PromptCategory = (typeof PROMPT_CATEGORIES)[number]
 
 interface AIAnalysis {
   category: PromptCategory
@@ -50,7 +69,7 @@ export class AIService {
               Available categories: ${PROMPT_CATEGORIES.join(", ")}
               
               Rules for analysis:
-              1. Choose exactly ONE category from the available list
+              1. Choose exactly ONE category from the available list - use the exact category name
               2. Generate 3-5 relevant tags
               3. Tags should be single words or short phrases
               4. Tags should cover key aspects, use cases, and techniques
@@ -74,7 +93,7 @@ export class AIService {
               Description: [description]`,
           },
         ],
-        temperature: 0.3, // Lower temperature for more consistent categorization
+        temperature: 0.3,
       })
 
       const analysis = response.choices[0]?.message?.content
@@ -82,22 +101,32 @@ export class AIService {
 
       // Parse the analysis into structured data
       const lines = analysis.split("\n")
-      const category =
-        (lines
-          .find((l) => l.startsWith("Category:"))
-          ?.split(":")[1]
-          ?.trim() as PromptCategory) || "General"
+
+      // Extract and validate category
+      const categoryLine = lines.find((l) => l.startsWith("Category:"))
+      const categoryText = categoryLine?.split(":")[1]?.trim()
+      const category = PROMPT_CATEGORIES.includes(
+        categoryText as PromptCategory
+      )
+        ? (categoryText as PromptCategory)
+        : "General"
+
+      // Extract and clean tags
+      const tagsLine = lines.find((l) => l.startsWith("Tags:"))
       const tags =
-        lines
-          .find((l) => l.startsWith("Tags:"))
+        tagsLine
           ?.split(":")[1]
           ?.split(",")
-          .map((t) => t.trim()) || []
+          .map((t) => t.trim())
+          .filter(Boolean) || []
+
+      // Extract name and description
       const name =
         lines
           .find((l) => l.startsWith("Name:"))
           ?.split(":")[1]
           ?.trim() || "Untitled Prompt"
+
       const description =
         lines
           .find((l) => l.startsWith("Description:"))
