@@ -209,13 +209,6 @@ export default function NewPromptPage() {
 
                 <div className="flex gap-2">
                     <Button
-                        onClick={handleAnalyze}
-                        variant="secondary"
-                        disabled={isAnalyzing || !content}
-                    >
-                        {isAnalyzing ? "Analyzing..." : "Analyze & Generate Metadata"}
-                    </Button>
-                    <Button
                         onClick={handleOptimize}
                         variant="secondary"
                         disabled={isOptimizing || !content}

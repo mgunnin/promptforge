@@ -65,32 +65,33 @@ export class AIService {
         messages: [
           {
             role: "system",
-            content: `You are an AI assistant that analyzes prompts and provides structured information about them.
-              Available categories: ${PROMPT_CATEGORIES.join(", ")}
-              
-              Rules for analysis:
-              1. Choose exactly ONE category from the available list - use the exact category name
-              2. Generate 3-5 relevant tags
-              3. Tags should be single words or short phrases
-              4. Tags should cover key aspects, use cases, and techniques
-              5. Suggest a clear, concise name
-              6. Provide a brief but informative description`,
+            content: `You are an advanced AI assistant specializing in prompt analysis. Your task is to analyze prompts, infer their intent and context, and provide structured metadata about them.
+      
+            Available categories: ${PROMPT_CATEGORIES.join(", ")}
+
+            Your analysis should follow these rules:
+            1. **Category Selection**: Choose exactly ONE category from the available list that best aligns with the primary purpose of the prompt. Use the exact category name.
+            2. **Tag Generation**: Generate 3-5 concise, relevant tags that highlight key aspects, use cases, or techniques of the prompt. Tags must be single words or short phrases.
+            3. **Name Suggestion**: Suggest a clear and concise name for the prompt that reflects its purpose or goal.
+            4. **Description Creation**: Provide a brief but informative description that explains the intent, use case, and expected output of the prompt.
+            5. **Contextual Enrichment**: Use reasoning to infer implicit goals or missing details if the prompt lacks clarity, and include them in your analysis where applicable.
+            6. **Consistency**: Ensure your analysis is concise, precise, and uses consistent terminology aligned with the categories and tags.`,
           },
           {
             role: "user",
             content: `Analyze this prompt and provide:
-              1. Category (choose one): ${PROMPT_CATEGORIES.join(", ")}
-              2. Tags (3-5 relevant tags)
-              3. Suggested name
-              4. Brief description
-              
-              Prompt: ${content}
-              
-              Respond in this exact format:
-              Category: [category]
-              Tags: [tag1], [tag2], [tag3]
-              Name: [name]
-              Description: [description]`,
+            1. Category (choose one): ${PROMPT_CATEGORIES.join(", ")}
+            2. Tags (3-5 relevant tags)
+            3. Suggested name
+            4. Brief description
+            
+            Prompt: ${content}
+            
+            Respond in this exact format:
+            Category: [category]
+            Tags: [tag1], [tag2], [tag3], [tag4], [tag5]
+            Name: [name]
+            Description: [description]`,
           },
         ],
         temperature: 0.3,
@@ -156,20 +157,29 @@ export class AIService {
           {
             role: "system",
             content:
-              "You are an AI assistant that optimizes prompts for better results. Return ONLY the optimized prompt without any explanations.",
+              "You are the most advanced AI assistant specialized in optimizing prompts for exceptional results. Your optimizations must leverage deep reasoning, contextual understanding, and advanced analysis. Your goal is to ensure the prompt is not only clear and specific but also highly effective, actionable, and aligned with its intended purpose.",
+          },
+          {
+            role: "system",
+            content: `Rules for optimization: \n\
+            1. **Deep Analysis**: Analyze the intent and context of the prompt to infer implicit goals or missing details.\n\
+            2. **Clarity and Specificity**: Rewrite the prompt to be clear, precise, and unambiguous while ensuring it remains concise.\n\
+            3. **Context and Constraints**: Add any necessary background, contextual details, or constraints to guide the response generation effectively.\n\
+            4. **Desired Output**: Clearly specify the desired format, structure, or style of the output.\n\
+            5. **Error Handling**: Incorporate error handling instructions to account for ambiguities, incomplete data, or failure scenarios.\n\
+            6. **Iterative Refinement**: Continuously refine phrasing to remove redundancies, improve flow, and enhance usability.\n\
+            7. **Dynamic Adaptability**: Adjust the optimization style to the complexity, tone, or domain of the original prompt, ensuring alignment with the user's goals.`,
           },
           {
             role: "user",
-            content: `Optimize this prompt by:
-              1. Improving clarity and specificity
-              2. Adding necessary context and constraints
-              3. Specifying desired output format
-              4. Adding error handling instructions
-              5. Making it more concise and effective
-              
-              Original Prompt: ${content}
-              
-              Return ONLY the optimized prompt, no explanations.`,
+            content: `Optimize this prompt: \n\
+            Original Prompt: ${content}\n\n\
+            Your task is to:\n\
+            1. Enhance clarity and specificity.\n\
+            2. Add necessary context, background, and constraints.\n\
+            3. Define the desired output format, including structure and style.\n\
+            4. Provide error-handling instructions if relevant.\n\n\
+            Return ONLY the optimized prompt. The optimized prompt must be clear, actionable, and better than the original in every way.`,
           },
         ],
         temperature: 0.7,
