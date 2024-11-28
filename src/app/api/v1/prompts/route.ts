@@ -1,4 +1,6 @@
 import { PromptService } from "@/lib/services/prompt.service"
+import { LLMModel } from "@/types/prompt"
+import { PromptCategory } from "@prisma/client"
 import { getToken } from "next-auth/jwt"
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
@@ -8,18 +10,46 @@ const createPromptSchema = z.object({
   content: z.string().min(1, "Content is required"),
   description: z.string().optional(),
   tags: z.array(z.string()),
-  model: z.enum(["gpt-4o", "claude-3-5-sonnet-20241022"] as const),
-  category: z.string().optional(),
+  model: z.custom<LLMModel>((val) => {
+    return (
+      typeof val === "string" &&
+      [
+        "gpt-4o",
+        "gpt-4-turbo",
+        "gpt-3.5-turbo",
+        "claude-3-opus",
+        "claude-3-sonnet-20241022",
+        "gemini-pro",
+        "mixtral-8x7b",
+        "llama-2-70b",
+      ].includes(val as string)
+    )
+  }, "Invalid model"),
+  category: z.nativeEnum(PromptCategory).optional(),
 })
 
 export async function POST(req: NextRequest) {
   try {
     const token = await getToken({ req })
-    if (!token?.id) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
+
+    if (!token) {
+      return NextResponse.json(
+        { message: "Authentication required" },
+        { status: 401 }
+      )
+    }
+
+    if (!token.id) {
+      return NextResponse.json(
+        { message: "Invalid authentication token" },
+        { status: 401 }
+      )
     }
 
     const body = await req.json()
+    console.log("Request body:", body)
+    console.log("User ID from token:", token.id)
+
     const validatedData = createPromptSchema.parse(body)
 
     const prompt = await PromptService.createPrompt({
@@ -36,9 +66,32 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    console.error("Error creating prompt:", error)
+    const errorDetails = {
+      name: error instanceof Error ? error.name : "Unknown",
+      message: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : undefined,
+    }
+
+    console.error("Error creating prompt:", errorDetails)
+
+    if (
+      error instanceof Error &&
+      error.message.includes("Foreign key constraint")
+    ) {
+      return NextResponse.json(
+        {
+          message: "User not found in database",
+          error: "Invalid user ID",
+          userId: error.message.includes("Prompt_userId_fkey")
+            ? "User ID constraint violation"
+            : "Other constraint violation",
+        },
+        { status: 400 }
+      )
+    }
+
     return NextResponse.json(
-      { message: "Internal server error" },
+      { message: "Internal server error", error: errorDetails },
       { status: 500 }
     )
   }
@@ -79,8 +132,24 @@ const updatePromptSchema = z.object({
   content: z.string().min(1, "Content is required").optional(),
   description: z.string().optional(),
   tags: z.array(z.string()).optional(),
-  model: z.enum(["gpt-4o", "claude-3-5-sonnet-20241022"] as const).optional(),
-  category: z.string().optional(),
+  model: z
+    .custom<LLMModel>((val) => {
+      return (
+        typeof val === "string" &&
+        [
+          "gpt-4o",
+          "gpt-4-turbo",
+          "gpt-3.5-turbo",
+          "claude-3-opus",
+          "claude-3-sonnet-20241022",
+          "gemini-pro",
+          "mixtral-8x7b",
+          "llama-2-70b",
+        ].includes(val as string)
+      )
+    }, "Invalid model")
+    .optional(),
+  category: z.nativeEnum(PromptCategory).optional(),
 })
 
 export async function PUT(req: NextRequest) {

@@ -1,4 +1,12 @@
-export type LLMModel = "gpt-4o" | "claude-3-5-sonnet-20241022"
+export type LLMModel = 
+  | "gpt-4o"
+  | "gpt-4-turbo"
+  | "gpt-3.5-turbo"
+  | "claude-3-opus"
+  | "claude-3-sonnet-20241022"
+  | "gemini-pro"
+  | "mixtral-8x7b"
+  | "llama-2-70b"
 
 export interface Prompt {
   id: string

@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma"
 import { LLMModel } from "@/types/prompt"
-import { Prisma } from "@prisma/client"
+import { Prisma, PromptCategory } from "@prisma/client"
 
 export interface ListPromptsOptions {
   category?: string
@@ -18,13 +18,26 @@ export class PromptService {
     description?: string | null
     model: LLMModel
     tags: string[]
-    category?: string | null
+    category?: PromptCategory | null
     userId: string
     teamId?: string | null
   }) {
+    // Verify user exists first
+    const user = await prisma.user.findUnique({
+      where: { id: data.userId },
+    })
+
+    if (!user) {
+      throw new Error(`User not found with ID: ${data.userId}`)
+    }
+
+    const { category, ...restData } = data
+
     const prompt = await prisma.prompt.create({
       data: {
-        ...data,
+        ...restData,
+        // Convert null to undefined for category
+        ...(category && { category }),
         versions: {
           create: {
             content: data.content,
@@ -122,7 +135,7 @@ export class PromptService {
     }
 
     if (category) {
-      baseWhere.category = category
+      baseWhere.category = category as PromptCategory
     }
 
     if (tag) {
@@ -198,11 +211,13 @@ export class PromptService {
       description?: string | null
       model?: LLMModel
       tags?: string[]
-      category?: string | null
+      category?: PromptCategory | null
       teamId?: string | null
     }
   ) {
-    const prompt = await prisma.prompt.findFirst({
+    const { category, teamId, ...restData } = data
+
+    const existingPrompt = await prisma.prompt.findFirst({
       where: {
         id,
         OR: [
@@ -220,20 +235,22 @@ export class PromptService {
       },
     })
 
-    if (!prompt) {
+    if (!existingPrompt) {
       throw new Error("Prompt not found")
     }
 
     const updatedPrompt = await prisma.prompt.update({
       where: { id },
       data: {
-        ...data,
+        ...restData,
+        ...(category && { category }),
+        ...(teamId && { teamId }),
         ...(data.content && {
           versions: {
             create: {
               content: data.content,
               description: data.description,
-              model: data.model || prompt.model,
+              model: data.model || existingPrompt.model,
             },
           },
         }),

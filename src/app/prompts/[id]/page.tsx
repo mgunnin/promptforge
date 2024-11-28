@@ -77,7 +77,7 @@ export default async function PromptDetailPage({ params }: PromptDetailPageProps
         redirect("/login")
     }
 
-    const rawPrompt = await PromptService.getPromptById(params.id, session.user.id) as unknown as DatabasePrompt
+    const rawPrompt = await PromptService.getPromptById(await params.id, session.user.id) as unknown as DatabasePrompt
     const prompt = {
         ...rawPrompt,
         metrics: parseMetrics(rawPrompt.metrics),

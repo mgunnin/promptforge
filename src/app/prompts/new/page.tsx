@@ -18,6 +18,7 @@ import { useToast } from "@/components/ui/use-toast"
 import { PromptCategory, Version } from "@prisma/client"
 import { X } from "lucide-react"
 import { useState } from "react"
+import { useSession } from "next-auth/react"
 
 const AVAILABLE_MODELS = [
     { id: "gpt-4o", name: "GPT-4o" },
@@ -51,6 +52,7 @@ const PROMPT_CATEGORIES = [
 ] as const
 
 export default function NewPromptPage() {
+    const { data: session } = useSession()
     const [content, setContent] = useState("")
     const [name, setName] = useState("")
     const [description, setDescription] = useState("")
@@ -60,7 +62,7 @@ export default function NewPromptPage() {
     const [isAnalyzing, setIsAnalyzing] = useState(false)
     const [isOptimizing, setIsOptimizing] = useState(false)
     const [versions, setVersions] = useState<Version[]>([])
-    const [activeVersionId, setActiveVersionId] = useState<string>()
+    const [activeVersionId, setActiveVersionId] = useState<string | null>(null)
     const [isComparing, setIsComparing] = useState(false)
     const [compareVersions, setCompareVersions] = useState<{
         version1: Version
@@ -170,6 +172,15 @@ export default function NewPromptPage() {
     }
 
     const handleSave = async () => {
+        if (!session) {
+            toast({
+                title: "Authentication Required",
+                description: "Please sign in to save your prompt.",
+                variant: "destructive",
+            })
+            return
+        }
+
         if (!content) {
             toast({
                 title: "No Content",
@@ -179,44 +190,72 @@ export default function NewPromptPage() {
             return
         }
 
-        // Auto-analyze if metadata is empty
-        if (!name || !description || !category || tags.length === 0) {
-            await handleAnalyze()
-        }
-
         try {
-            // Create the prompt
-            const response = await fetch("/api/v1/prompts", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    name,
-                    content,
-                    description,
-                    model,
-                    category,
-                    tags,
-                }),
-            })
+            // Auto-analyze if metadata is empty
+            if (!name || !description || !category || tags.length === 0) {
+                setIsAnalyzing(true)
+                const analysisResponse = await fetch("/api/v1/prompts/analyze", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ content }),
+                })
 
-            if (!response.ok) throw new Error("Failed to save prompt")
-            const prompt = await response.json()
+                if (!analysisResponse.ok) throw new Error("Failed to analyze prompt")
+                const analysis = await analysisResponse.json()
 
-            // Create the initial version through API
-            const versionResponse = await fetch(`/api/v1/prompts/${prompt.id}/versions/create`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    content,
-                    model,
-                }),
-            })
+                // Update state with analysis results
+                const analyzedName = analysis.suggestedName || name
+                const analyzedDescription = analysis.description || description
+                const analyzedCategory = analysis.category || category
+                const analyzedTags = analysis.tags || tags
 
-            if (!versionResponse.ok) throw new Error("Failed to create version")
-            const version = await versionResponse.json()
+                // Create the prompt with analyzed data
+                const response = await fetch("/api/v1/prompts", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        name: analyzedName,
+                        content,
+                        description: analyzedDescription,
+                        model,
+                        category: analyzedCategory,
+                        tags: analyzedTags,
+                    }),
+                })
 
-            setVersions([version])
-            setActiveVersionId(version.id)
+                if (!response.ok) throw new Error("Failed to create prompt")
+                const prompt = await response.json()
+
+                // Update state with the created prompt
+                setName(analyzedName)
+                setDescription(analyzedDescription)
+                setCategory(analyzedCategory)
+                setTags(analyzedTags)
+                setActiveVersionId(prompt.id)
+                setVersions(prompt.versions || [])
+
+            } else {
+                // Create the prompt with existing data
+                const response = await fetch("/api/v1/prompts", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        name,
+                        content,
+                        description,
+                        model,
+                        category,
+                        tags,
+                    }),
+                })
+
+                if (!response.ok) throw new Error("Failed to create prompt")
+                const prompt = await response.json()
+
+                // Update state with the created prompt
+                setActiveVersionId(prompt.id)
+                setVersions(prompt.versions || [])
+            }
 
             toast({
                 title: "Prompt Saved",
@@ -229,6 +268,8 @@ export default function NewPromptPage() {
                 description: "Failed to save the prompt. Please try again.",
                 variant: "destructive",
             })
+        } finally {
+            setIsAnalyzing(false)
         }
     }
 
@@ -320,6 +361,7 @@ export default function NewPromptPage() {
 
             <div className="grid gap-6">
                 <PromptEditor
+                    promptId={activeVersionId || ""}
                     content={content}
                     onChange={setContent}
                     onAnalyze={handleAnalyze}
