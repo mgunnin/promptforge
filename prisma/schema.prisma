@@ -62,6 +62,11 @@ enum PromptCategory {
   Research
 }
 
+enum VersionType {
+  original
+  optimized
+}
+
 model Prompt {
   id          String        @id @default(cuid())
   name        String
@@ -71,7 +76,6 @@ model Prompt {
   tags        String[]
   category    PromptCategory @default(General)
   metrics     Json?
-  embedding   Unsupported("vector(1536)")?
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   userId      String
@@ -83,14 +87,20 @@ model Prompt {
 }
 
 model Version {
-  id          String   @id @default(cuid())
+  id          String      @id @default(cuid())
   content     String
   description String?
   model       String
-  metrics     Json?
-  createdAt   DateTime @default(now())
+  type        VersionType @default(original)
+  metrics     Json?       // { tokenCount: number, estimatedCost: number, performance?: Record<string, any> }
+  createdAt   DateTime    @default(now())
   promptId    String
-  prompt      Prompt   @relation(fields: [promptId], references: [id], onDelete: Cascade)
+  prompt      Prompt      @relation(fields: [promptId], references: [id], onDelete: Cascade)
+  isActive    Boolean     @default(false)
+
+  @@index([promptId])
+  @@index([type])
+  @@index([isActive])
 }
 
 model PromptTest {

@@ -1,6 +1,5 @@
 import { prisma } from "@/lib/prisma"
-import { AIService } from "@/lib/services/ai.service"
-import { Prompt, LLMModel } from "@/types/prompt"
+import { LLMModel } from "@/types/prompt"
 import { Prisma } from "@prisma/client"
 
 export interface ListPromptsOptions {
@@ -9,6 +8,7 @@ export interface ListPromptsOptions {
   search?: string
   page?: number
   limit?: number
+  excludeId?: string
 }
 
 export class PromptService {

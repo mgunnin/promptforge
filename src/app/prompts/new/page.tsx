@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/use-toast"
-import { PromptCategory } from "@prisma/client"
+import { PromptCategory, Version } from "@prisma/client"
 import { X } from "lucide-react"
 import { useState } from "react"
 
@@ -59,6 +59,13 @@ export default function NewPromptPage() {
     const [tags, setTags] = useState<string[]>([])
     const [isAnalyzing, setIsAnalyzing] = useState(false)
     const [isOptimizing, setIsOptimizing] = useState(false)
+    const [versions, setVersions] = useState<Version[]>([])
+    const [activeVersionId, setActiveVersionId] = useState<string>()
+    const [isComparing, setIsComparing] = useState(false)
+    const [compareVersions, setCompareVersions] = useState<{
+        version1: Version
+        version2: Version
+    }>()
     const { toast } = useToast()
 
     const handleAnalyze = async () => {
@@ -104,10 +111,10 @@ export default function NewPromptPage() {
     }
 
     const handleOptimize = async () => {
-        if (!content) {
+        if (!content || !activeVersionId) {
             toast({
-                title: "No Content",
-                description: "Please write your prompt first.",
+                title: "Cannot Optimize",
+                description: "Please save the prompt first.",
                 variant: "destructive",
             })
             return
@@ -115,16 +122,37 @@ export default function NewPromptPage() {
 
         setIsOptimizing(true)
         try {
-            const response = await fetch("/api/v1/prompts/optimize", {
+            // First, get the optimized content
+            const optimizeResponse = await fetch("/api/v1/prompts/optimize", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ content, model }),
             })
 
-            if (!response.ok) throw new Error("Failed to optimize prompt")
-            const { optimizedContent } = await response.json()
+            if (!optimizeResponse.ok) throw new Error("Failed to optimize prompt")
+            const { optimizedContent, metrics } = await optimizeResponse.json()
 
-            setContent(optimizedContent)
+            // Then, create a new version through the API
+            const versionResponse = await fetch(`/api/v1/prompts/${activeVersionId}/versions/optimize`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    content: optimizedContent,
+                    model,
+                    metrics,
+                }),
+            })
+
+            if (!versionResponse.ok) throw new Error("Failed to create version")
+            const version = await versionResponse.json()
+
+            setVersions([...versions, version])
+            setCompareVersions({
+                version1: versions.find((v) => v.type === "original")!,
+                version2: version,
+            })
+            setIsComparing(true)
+
             toast({
                 title: "Prompt Optimized",
                 description: "Your prompt has been optimized for better results.",
@@ -157,6 +185,7 @@ export default function NewPromptPage() {
         }
 
         try {
+            // Create the prompt
             const response = await fetch("/api/v1/prompts", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -171,6 +200,23 @@ export default function NewPromptPage() {
             })
 
             if (!response.ok) throw new Error("Failed to save prompt")
+            const prompt = await response.json()
+
+            // Create the initial version through API
+            const versionResponse = await fetch(`/api/v1/prompts/${prompt.id}/versions/create`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    content,
+                    model,
+                }),
+            })
+
+            if (!versionResponse.ok) throw new Error("Failed to create version")
+            const version = await versionResponse.json()
+
+            setVersions([version])
+            setActiveVersionId(version.id)
 
             toast({
                 title: "Prompt Saved",
@@ -184,6 +230,79 @@ export default function NewPromptPage() {
                 variant: "destructive",
             })
         }
+    }
+
+    const handleVersionSelect = (version: Version) => {
+        setContent(version.content)
+        setIsComparing(false)
+    }
+
+    const handleVersionCompare = (version1: Version, version2: Version) => {
+        setCompareVersions({ version1, version2 })
+        setIsComparing(true)
+    }
+
+    const handleVersionDelete = async (version: Version) => {
+        try {
+            const response = await fetch(`/api/v1/prompts/${version.promptId}/versions/${version.id}/delete`, {
+                method: "DELETE",
+            })
+
+            if (!response.ok) throw new Error("Failed to delete version")
+            setVersions(versions.filter((v) => v.id !== version.id))
+            toast({
+                title: "Version Deleted",
+                description: "The version has been deleted successfully.",
+            })
+        } catch (error) {
+            console.error("Error deleting version:", error)
+            toast({
+                title: "Delete Failed",
+                description: "Failed to delete the version. Please try again.",
+                variant: "destructive",
+            })
+        }
+    }
+
+    const handleVersionActivate = async (version: Version) => {
+        try {
+            const response = await fetch(`/api/v1/prompts/${version.promptId}/versions/${version.id}/activate`, {
+                method: "POST",
+            })
+
+            if (!response.ok) throw new Error("Failed to activate version")
+            setVersions(
+                versions.map((v) => ({
+                    ...v,
+                    isActive: v.id === version.id,
+                }))
+            )
+            setActiveVersionId(version.id)
+            setContent(version.content)
+            toast({
+                title: "Version Activated",
+                description: "The version has been set as active.",
+            })
+        } catch (error) {
+            console.error("Error activating version:", error)
+            toast({
+                title: "Activation Failed",
+                description: "Failed to activate the version. Please try again.",
+                variant: "destructive",
+            })
+        }
+    }
+
+    const handleAcceptOptimized = () => {
+        if (!compareVersions) return
+        handleVersionActivate(compareVersions.version2)
+        setIsComparing(false)
+    }
+
+    const handleRejectOptimized = () => {
+        if (!compareVersions) return
+        handleVersionDelete(compareVersions.version2)
+        setIsComparing(false)
     }
 
     const removeTag = (tagToRemove: string) => {
@@ -205,6 +324,16 @@ export default function NewPromptPage() {
                     onChange={setContent}
                     onAnalyze={handleAnalyze}
                     isAnalyzing={isAnalyzing}
+                    versions={versions}
+                    onVersionSelect={handleVersionSelect}
+                    onVersionCompare={handleVersionCompare}
+                    onVersionDelete={handleVersionDelete}
+                    onVersionActivate={handleVersionActivate}
+                    activeVersionId={activeVersionId}
+                    isComparing={isComparing}
+                    compareVersions={compareVersions}
+                    onAcceptOptimized={handleAcceptOptimized}
+                    onRejectOptimized={handleRejectOptimized}
                 />
 
                 <div className="flex gap-2">
@@ -245,10 +374,7 @@ export default function NewPromptPage() {
 
                         <div>
                             <Label htmlFor="category">Category</Label>
-                            <Select
-                                value={category}
-                                onValueChange={(value: PromptCategory) => setCategory(value)}
-                            >
+                            <Select value={category} onValueChange={(value: PromptCategory) => setCategory(value)}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select a category" />
                                 </SelectTrigger>
