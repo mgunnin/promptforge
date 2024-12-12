@@ -551,6 +551,13 @@ node_modules/
 
 ```
 
+# .vscode/settings.json
+
+```json
+{}
+
+```
+
 # components.json
 
 ```json
@@ -605,7 +612,7 @@ volumes:
 /// <reference types="next/image-types/global" />
 
 // NOTE: This file should not be edited
-// see https://nextjs.org/docs/app/building-your-application/configuring/typescript for more information.
+// see https://nextjs.org/docs/app/api-reference/config/typescript for more information.
 
 ```
 
@@ -647,7 +654,10 @@ export default nextConfig;
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:studio": "prisma studio"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
@@ -656,15 +666,19 @@ export default nextConfig;
     "@radix-ui/react-dialog": "^1.1.2",
     "@radix-ui/react-dropdown-menu": "^2.1.2",
     "@radix-ui/react-label": "^2.1.0",
+    "@radix-ui/react-scroll-area": "^1.2.1",
     "@radix-ui/react-select": "^2.1.2",
+    "@radix-ui/react-separator": "^1.1.0",
     "@radix-ui/react-slot": "^1.1.0",
+    "@radix-ui/react-tabs": "^1.1.1",
     "@radix-ui/react-toast": "^1.2.2",
     "@types/uuid": "^10.0.0",
     "bcryptjs": "^2.4.3",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
     "lucide-react": "^0.456.0",
-    "next": "15.0.3",
+    "next": "^15.1.0",
     "next-auth": "^4.24.10",
     "next-themes": "^0.4.3",
     "openai": "^4.71.1",
@@ -682,16 +696,16 @@ export default nextConfig;
     "@auth/prisma-adapter": "^2.7.3",
     "@playwright/test": "^1.48.2",
     "@types/bcryptjs": "^2.4.6",
-    "@types/node": "^20",
-    "@types/react": "^18",
-    "@types/react-dom": "^18",
-    "eslint": "^8",
+    "@types/node": "^22.10.2",
+    "@types/react": "^19.0.1",
+    "@types/react-dom": "^19.0.2",
+    "eslint": "9.15.0",
     "eslint-config-next": "15.0.3",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
     "typescript": "^5"
   },
-  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
+  "packageManager": "bun@1.0.0"
 }
 
 ```
@@ -795,17 +809,21 @@ export default config;
 
 ```
 
-# prisma/migrations/20241112155546_init/migration.sql
+# prisma/migrations/20241127215020_init/migration.sql
 
 ```sql
+-- CreateEnum
+CREATE TYPE "PromptCategory" AS ENUM ('General', 'CodeGeneration', 'ContentCreation', 'DataAnalysis', 'Translation', 'Summarization', 'QuestionAnswering', 'TaskPlanning', 'Roleplay', 'SystemDesign', 'Debugging', 'Testing', 'Documentation', 'CreativeWriting', 'Business', 'Education', 'Research');
+
+-- CreateEnum
+CREATE TYPE "VersionType" AS ENUM ('original', 'optimized');
+
 -- CreateTable
 CREATE TABLE "User" (
     "id" TEXT NOT NULL,
     "name" TEXT,
     "email" TEXT NOT NULL,
-    "emailVerified" TIMESTAMP(3),
     "password" TEXT NOT NULL,
-    "image" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -818,66 +836,10 @@ CREATE TABLE "ApiKey" (
     "name" TEXT NOT NULL,
     "key" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "lastUsed" TIMESTAMP(3),
-    "expiresAt" TIMESTAMP(3),
+    "updatedAt" TIMESTAMP(3) NOT NULL,
     "userId" TEXT NOT NULL,
 
     CONSTRAINT "ApiKey_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "Prompt" (
-    "id" TEXT NOT NULL,
-    "name" TEXT NOT NULL,
-    "content" TEXT NOT NULL,
-    "description" TEXT,
-    "model" TEXT NOT NULL,
-    "tags" TEXT[],
-    "category" TEXT,
-    "aiGenerated" JSONB,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-    "userId" TEXT NOT NULL,
-    "teamId" TEXT,
-
-    CONSTRAINT "Prompt_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "PromptVersion" (
-    "id" TEXT NOT NULL,
-    "content" TEXT NOT NULL,
-    "description" TEXT,
-    "model" TEXT NOT NULL,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "promptId" TEXT NOT NULL,
-    "metrics" JSONB,
-
-    CONSTRAINT "PromptVersion_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "PromptVariable" (
-    "id" TEXT NOT NULL,
-    "name" TEXT NOT NULL,
-    "description" TEXT,
-    "required" BOOLEAN NOT NULL DEFAULT false,
-    "defaultValue" TEXT,
-    "promptId" TEXT NOT NULL,
-
-    CONSTRAINT "PromptVariable_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "PromptTest" (
-    "id" TEXT NOT NULL,
-    "input" JSONB NOT NULL,
-    "output" TEXT NOT NULL,
-    "metrics" JSONB NOT NULL,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "promptId" TEXT NOT NULL,
-
-    CONSTRAINT "PromptTest_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -893,114 +855,22 @@ CREATE TABLE "Team" (
 );
 
 -- CreateTable
-CREATE TABLE "TeamMember" (
+CREATE TABLE "Prompt" (
     "id" TEXT NOT NULL,
-    "role" TEXT NOT NULL,
-    "joinedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "name" TEXT NOT NULL,
+    "content" TEXT NOT NULL,
+    "description" TEXT,
+    "model" TEXT NOT NULL,
+    "tags" TEXT[],
+    "category" "PromptCategory" NOT NULL DEFAULT 'General',
+    "metrics" JSONB,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
     "userId" TEXT NOT NULL,
-    "teamId" TEXT NOT NULL,
+    "teamId" TEXT,
 
-    CONSTRAINT "TeamMember_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "Prompt_pkey" PRIMARY KEY ("id")
 );
-
--- CreateIndex
-CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
-
--- CreateIndex
-CREATE UNIQUE INDEX "ApiKey_key_key" ON "ApiKey"("key");
-
--- CreateIndex
-CREATE UNIQUE INDEX "TeamMember_userId_teamId_key" ON "TeamMember"("userId", "teamId");
-
--- AddForeignKey
-ALTER TABLE "ApiKey" ADD CONSTRAINT "ApiKey_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "Prompt" ADD CONSTRAINT "Prompt_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "Prompt" ADD CONSTRAINT "Prompt_teamId_fkey" FOREIGN KEY ("teamId") REFERENCES "Team"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "PromptVersion" ADD CONSTRAINT "PromptVersion_promptId_fkey" FOREIGN KEY ("promptId") REFERENCES "Prompt"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "PromptVariable" ADD CONSTRAINT "PromptVariable_promptId_fkey" FOREIGN KEY ("promptId") REFERENCES "Prompt"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "PromptTest" ADD CONSTRAINT "PromptTest_promptId_fkey" FOREIGN KEY ("promptId") REFERENCES "Prompt"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "Team" ADD CONSTRAINT "Team_ownerId_fkey" FOREIGN KEY ("ownerId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "TeamMember" ADD CONSTRAINT "TeamMember_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "TeamMember" ADD CONSTRAINT "TeamMember_teamId_fkey" FOREIGN KEY ("teamId") REFERENCES "Team"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
-```
-
-# prisma/migrations/20241126154916_add_vector_search/migration.sql
-
-```sql
-/*
-  Warnings:
-
-  - You are about to drop the column `expiresAt` on the `ApiKey` table. All the data in the column will be lost.
-  - You are about to drop the column `lastUsed` on the `ApiKey` table. All the data in the column will be lost.
-  - You are about to drop the column `aiGenerated` on the `Prompt` table. All the data in the column will be lost.
-  - You are about to drop the column `emailVerified` on the `User` table. All the data in the column will be lost.
-  - You are about to drop the column `image` on the `User` table. All the data in the column will be lost.
-  - You are about to drop the `PromptVariable` table. If the table is not empty, all the data it contains will be lost.
-  - You are about to drop the `PromptVersion` table. If the table is not empty, all the data it contains will be lost.
-  - You are about to drop the `TeamMember` table. If the table is not empty, all the data it contains will be lost.
-  - Added the required column `updatedAt` to the `ApiKey` table without a default value. This is not possible if the table is not empty.
-
-*/
--- DropForeignKey
-ALTER TABLE "PromptVariable" DROP CONSTRAINT "PromptVariable_promptId_fkey";
-
--- DropForeignKey
-ALTER TABLE "PromptVersion" DROP CONSTRAINT "PromptVersion_promptId_fkey";
-
--- DropForeignKey
-ALTER TABLE "TeamMember" DROP CONSTRAINT "TeamMember_teamId_fkey";
-
--- DropForeignKey
-ALTER TABLE "TeamMember" DROP CONSTRAINT "TeamMember_userId_fkey";
-
--- Create extension for vector operations (if not exists)
-CREATE EXTENSION IF NOT EXISTS vector;
-
--- Add updatedAt to ApiKey with default value
-ALTER TABLE "ApiKey" ADD COLUMN "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
-
--- Add embedding column to Prompt
-ALTER TABLE "Prompt" ADD COLUMN "embedding" vector(1536);
-
--- Create index on embedding
-CREATE INDEX "Prompt_embedding_idx" ON "Prompt" USING ivfflat ("embedding" vector_cosine_ops);
-
--- AlterTable
-ALTER TABLE "Prompt" DROP COLUMN "aiGenerated",
-ADD COLUMN     "metrics" JSONB;
-
--- AlterTable
-ALTER TABLE "PromptTest" ALTER COLUMN "metrics" DROP NOT NULL;
-
--- AlterTable
-ALTER TABLE "User" DROP COLUMN "emailVerified",
-DROP COLUMN "image";
-
--- DropTable
-DROP TABLE "PromptVariable";
-
--- DropTable
-DROP TABLE "PromptVersion";
-
--- DropTable
-DROP TABLE "TeamMember";
 
 -- CreateTable
 CREATE TABLE "Version" (
@@ -1008,11 +878,25 @@ CREATE TABLE "Version" (
     "content" TEXT NOT NULL,
     "description" TEXT,
     "model" TEXT NOT NULL,
+    "type" "VersionType" NOT NULL DEFAULT 'original',
+    "metrics" JSONB,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "promptId" TEXT NOT NULL,
+    "isActive" BOOLEAN NOT NULL DEFAULT false,
+
+    CONSTRAINT "Version_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "PromptTest" (
+    "id" TEXT NOT NULL,
+    "input" JSONB NOT NULL,
+    "output" TEXT NOT NULL,
     "metrics" JSONB,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "promptId" TEXT NOT NULL,
 
-    CONSTRAINT "Version_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "PromptTest_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -1022,39 +906,49 @@ CREATE TABLE "_TeamMembers" (
 );
 
 -- CreateIndex
+CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ApiKey_key_key" ON "ApiKey"("key");
+
+-- CreateIndex
+CREATE INDEX "Version_promptId_idx" ON "Version"("promptId");
+
+-- CreateIndex
+CREATE INDEX "Version_type_idx" ON "Version"("type");
+
+-- CreateIndex
+CREATE INDEX "Version_isActive_idx" ON "Version"("isActive");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "_TeamMembers_AB_unique" ON "_TeamMembers"("A", "B");
 
 -- CreateIndex
 CREATE INDEX "_TeamMembers_B_index" ON "_TeamMembers"("B");
 
 -- AddForeignKey
+ALTER TABLE "ApiKey" ADD CONSTRAINT "ApiKey_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Team" ADD CONSTRAINT "Team_ownerId_fkey" FOREIGN KEY ("ownerId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Prompt" ADD CONSTRAINT "Prompt_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Prompt" ADD CONSTRAINT "Prompt_teamId_fkey" FOREIGN KEY ("teamId") REFERENCES "Team"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "Version" ADD CONSTRAINT "Version_promptId_fkey" FOREIGN KEY ("promptId") REFERENCES "Prompt"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PromptTest" ADD CONSTRAINT "PromptTest_promptId_fkey" FOREIGN KEY ("promptId") REFERENCES "Prompt"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "_TeamMembers" ADD CONSTRAINT "_TeamMembers_A_fkey" FOREIGN KEY ("A") REFERENCES "Team"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "_TeamMembers" ADD CONSTRAINT "_TeamMembers_B_fkey" FOREIGN KEY ("B") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
-```
-
-# prisma/migrations/20241126155235_promptforge_01/migration.sql
-
-```sql
-/*
-  Warnings:
-
-  - You are about to drop the column `expiresAt` on the `ApiKey` table. All the data in the column will be lost.
-  - You are about to drop the column `lastUsed` on the `ApiKey` table. All the data in the column will be lost.
-
-*/
--- DropIndex
-DROP INDEX "Prompt_embedding_idx";
-
--- AlterTable
-ALTER TABLE "ApiKey" DROP COLUMN "expiresAt",
-DROP COLUMN "lastUsed",
-ALTER COLUMN "updatedAt" DROP DEFAULT;
 
 ```
 
@@ -1133,6 +1027,11 @@ enum PromptCategory {
   Research
 }
 
+enum VersionType {
+  original
+  optimized
+}
+
 model Prompt {
   id          String        @id @default(cuid())
   name        String
@@ -1142,7 +1041,6 @@ model Prompt {
   tags        String[]
   category    PromptCategory @default(General)
   metrics     Json?
-  embedding   Unsupported("vector(1536)")?
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   userId      String
@@ -1154,14 +1052,20 @@ model Prompt {
 }
 
 model Version {
-  id          String   @id @default(cuid())
+  id          String      @id @default(cuid())
   content     String
   description String?
   model       String
-  metrics     Json?
-  createdAt   DateTime @default(now())
+  type        VersionType @default(original)
+  metrics     Json?       // { tokenCount: number, estimatedCost: number, performance?: Record<string, any> }
+  createdAt   DateTime    @default(now())
   promptId    String
-  prompt      Prompt   @relation(fields: [promptId], references: [id], onDelete: Cascade)
+  prompt      Prompt      @relation(fields: [promptId], references: [id], onDelete: Cascade)
+  isActive    Boolean     @default(false)
+
+  @@index([promptId])
+  @@index([type])
+  @@index([isActive])
 }
 
 model PromptTest {
@@ -1199,44 +1103,147 @@ This is a file of the type: SVG Image
 # README.md
 
 ```md
-# Promptforge
+# PromptForge
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+PromptForge is a modern prompt management application built for AI development. It provides a robust platform for creating, testing, and managing prompts with advanced features for collaboration and version control.
+
+## Features
+
+### Core Functionality
+
+- 🔄 Prompt version control
+- 🧪 Interactive prompt testing environment
+- 📊 Performance metrics and analytics
+- 🤝 Team collaboration support
+- 🔑 API key management
+- 🌓 Dark/light mode theming
+- 📱 Responsive design
+
+### Prompt Management
+
+- Create and edit prompts with rich text support
+- Import prompts from JSON, CSV, or TXT files
+- Variable detection and management
+- Test prompts with different models and parameters
+- Track metrics including response time, token usage, and success rate
+
+### Collaboration
+
+- Team-based prompt sharing
+- Role-based access control
+- Version history tracking
+- Collaborative editing features
+
+### Security
+
+- JWT-based authentication
+- Secure API key rotation
+- Password hashing with bcrypt
+- Protected routes with middleware
+- Secure database access
+
+## Tech Stack
+
+- **Framework**: Next.js 14 with TypeScript
+- **Styling**: Tailwind CSS with shadcn/ui components
+- **Database**: PostgreSQL with Prisma ORM
+- **Authentication**: NextAuth.js
+- **API Integration**: OpenAI API support
+- **State Management**: React Context API
+- **Testing**: Built-in test environment
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 18.x or higher
+- PostgreSQL database
+- OpenAI API key
+- Bun package manager
+
+### Installation
+
+1. Clone the repository:
 
 \`\`\`bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
+git clone https://github.com/mgunnin/vl-promptforge.git
+cd vl-promptforge
+\`\`\`
+
+2. Install dependencies:
+
+\`\`\`bash
+bun i
+\`\`\`
+
+3. Set up environment variables:
+
+\`\`\`bash
+cp .env.example .env.local
+\`\`\`
+
+4. Update the `.env.local` file with your database and API key details.
+
+DATABASE_URL="postgresql://user:password@localhost:5432/promptforge"
+NEXTAUTH_SECRET="your-secret-key"
+OPENAI_API_KEY="your-openai-api-key"
+
+5. Run the development server:
+
+\`\`\`bash
 bun dev
 \`\`\`
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Visit `http://localhost:3000` to see the application.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Project Structure
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+\`\`\`plaintext
+src/
+├── app/ # Next.js 14 app directory
+│ ├── api/ # API routes
+│ ├── auth/ # Authentication pages
+│ ├── prompts/ # Prompt management pages
+│ └── test/ # Prompt testing environment
+├── components/ # Reusable UI components
+├── contexts/ # React contexts
+├── lib/ # Utility functions and services
+│ ├── services/ # Core service classes
+│ └── utils/ # Helper functions
+├── prisma/ # Database schema and migrations
+│ └── types/ # TypeScript type definitions
+├── public/ # Public assets
+├── styles/ # Global styles
+├── types/ # TypeScript type definitions
+├── utils/ # Utility functions
+└── .env.local # Local environment variables
+\`\`\`
 
-## Learn More
+## Core Services
 
-To learn more about Next.js, take a look at the following resources:
+- **AIService**: Handles LLM provider interactions
+- **AuthService**: Manages authentication and API keys
+- **PromptService**: Handles prompt operations
+- **UserService**: Manages user-related functionality
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Contributing
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-## Deploy on Vercel
+## License
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Acknowledgments
+
+- Built with [Next.js](https://nextjs.org/)
+- UI components from [shadcn/ui](https://ui.shadcn.com/)
+- Database ORM by [Prisma](https://www.prisma.io/)
+- Authentication by [NextAuth.js](https://next-auth.js.org/)
 
 ```
 
@@ -1465,6 +1472,279 @@ export async function PUT(req: NextRequest) {
 
 ```
 
+# src/app/api/v1/prompts/[id]/versions/[versionId]/activate/route.ts
+
+```ts
+import { authOptions } from "@/lib/auth"
+import { PromptService } from "@/lib/services/prompt.service"
+import { VersionService } from "@/lib/services/version.service"
+import { getServerSession } from "next-auth"
+import { NextRequest, NextResponse } from "next/server"
+
+export async function POST(
+  req: NextRequest,
+  { params }: { params: { id: string; versionId: string } }
+) {
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.id) {
+    return new NextResponse("Unauthorized", { status: 401 })
+  }
+
+  try {
+    // Check if user has access to this prompt
+    const prompt = await PromptService.getPromptById(params.id, session.user.id)
+    if (!prompt) {
+      return new NextResponse("Not found", { status: 404 })
+    }
+
+    const version = await VersionService.setActiveVersion(params.versionId)
+    return NextResponse.json(version)
+  } catch (error) {
+    console.error("Error activating version:", error)
+    return new NextResponse("Internal Server Error", { status: 500 })
+  }
+} 
+```
+
+# src/app/api/v1/prompts/[id]/versions/[versionId]/delete/route.ts
+
+```ts
+import { VersionService } from "@/lib/services/version.service"
+import { NextResponse } from "next/server"
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: { id: string; versionId: string } }
+) {
+  try {
+    await VersionService.deleteVersion(params.versionId)
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error("Error deleting version:", error)
+    return NextResponse.json(
+      { error: "Failed to delete version" },
+      { status: 500 }
+    )
+  }
+}
+
+```
+
+# src/app/api/v1/prompts/[id]/versions/create/route.ts
+
+```ts
+import { VersionService } from "@/lib/services/version.service"
+import { NextResponse } from "next/server"
+
+export async function POST(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const body = await request.json()
+    const { content, model } = body
+
+    const version = await VersionService.createVersion({
+      promptId: params.id,
+      content,
+      model,
+      type: "original",
+    })
+
+    return NextResponse.json(version)
+  } catch (error) {
+    console.error("Error creating version:", error)
+    return NextResponse.json(
+      { error: "Failed to create version" },
+      { status: 500 }
+    )
+  }
+}
+
+```
+
+# src/app/api/v1/prompts/[id]/versions/optimize/route.ts
+
+```ts
+import { VersionService } from "@/lib/services/version.service"
+import { NextResponse } from "next/server"
+
+export async function POST(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  if (!params?.id) {
+    return NextResponse.json({ error: "Missing prompt ID" }, { status: 400 })
+  }
+
+  try {
+    const body = await request.json()
+    const { content, model, metrics } = body
+
+    const version = await VersionService.createVersion({
+      promptId: params.id,
+      content,
+      model,
+      type: "optimized",
+      metrics,
+    })
+
+    return NextResponse.json(version)
+  } catch (error) {
+    console.error("Error creating optimized version:", error)
+    return NextResponse.json(
+      { error: "Failed to create optimized version" },
+      { status: 500 }
+    )
+  }
+}
+
+```
+
+# src/app/api/v1/prompts/[id]/versions/route.ts
+
+```ts
+import { authOptions } from "@/lib/auth"
+import { PromptService } from "@/lib/services/prompt.service"
+import { VersionService } from "@/lib/services/version.service"
+import { VersionType } from "@prisma/client"
+import { getServerSession } from "next-auth"
+import { NextRequest, NextResponse } from "next/server"
+import { z } from "zod"
+
+const createVersionSchema = z.object({
+  content: z.string(),
+  description: z.string().optional().nullable(),
+  model: z.string(),
+  metrics: z.record(z.number()).optional(),
+})
+
+const updateVersionSchema = z.object({
+  content: z.string().optional(),
+  description: z.string().optional().nullable(),
+  model: z.string().optional(),
+  metrics: z.record(z.number()).optional(),
+})
+
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.id) {
+    return new NextResponse("Unauthorized", { status: 401 })
+  }
+
+  try {
+    // Check if user has access to this prompt
+    const prompt = await PromptService.getPromptById(params.id, session.user.id)
+    if (!prompt) {
+      return new NextResponse("Not found", { status: 404 })
+    }
+
+    const versions = await VersionService.getVersions(params.id)
+    return NextResponse.json(versions)
+  } catch (error) {
+    console.error("Error fetching versions:", error)
+    return new NextResponse("Internal Server Error", { status: 500 })
+  }
+}
+
+export async function POST(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.id) {
+    return new NextResponse("Unauthorized", { status: 401 })
+  }
+
+  try {
+    const json = await req.json()
+    const body = createVersionSchema.parse(json)
+
+    // Check if user has access to this prompt
+    const prompt = await PromptService.getPromptById(params.id, session.user.id)
+    if (!prompt) {
+      return new NextResponse("Not found", { status: 404 })
+    }
+
+    const version = await VersionService.createVersion({
+      ...body,
+      promptId: params.id,
+      type: VersionType.original,
+    })
+
+    return NextResponse.json(version)
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return new NextResponse(JSON.stringify(error.issues), { status: 400 })
+    }
+    console.error("Error creating version:", error)
+    return new NextResponse("Internal Server Error", { status: 500 })
+  }
+}
+
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: { id: string; versionId: string } }
+) {
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.id) {
+    return new NextResponse("Unauthorized", { status: 401 })
+  }
+
+  try {
+    const json = await req.json()
+    const body = updateVersionSchema.parse(json)
+
+    // Check if user has access to this prompt
+    const prompt = await PromptService.getPromptById(params.id, session.user.id)
+    if (!prompt) {
+      return new NextResponse("Not found", { status: 404 })
+    }
+
+    const version = await VersionService.updateVersion({
+      id: params.versionId,
+      ...body,
+    })
+
+    return NextResponse.json(version)
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return new NextResponse(JSON.stringify(error.issues), { status: 400 })
+    }
+    console.error("Error updating version:", error)
+    return new NextResponse("Internal Server Error", { status: 500 })
+  }
+}
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: { id: string; versionId: string } }
+) {
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.id) {
+    return new NextResponse("Unauthorized", { status: 401 })
+  }
+
+  try {
+    // Check if user has access to this prompt
+    const prompt = await PromptService.getPromptById(params.id, session.user.id)
+    if (!prompt) {
+      return new NextResponse("Not found", { status: 404 })
+    }
+
+    await VersionService.deleteVersion(params.versionId)
+    return new NextResponse(null, { status: 204 })
+  } catch (error) {
+    console.error("Error deleting version:", error)
+    return new NextResponse("Internal Server Error", { status: 500 })
+  }
+}
+
+```
+
 # src/app/api/v1/prompts/analyze/route.ts
 
 ```ts
@@ -1562,7 +1842,14 @@ export async function POST(req: NextRequest) {
     }
 
     const optimizedContent = await AIService.suggestImprovements(content, model)
-    return NextResponse.json({ optimizedContent })
+
+    // Calculate metrics
+    const metrics = {
+      tokenCount: Math.ceil(optimizedContent.length / 4), // Rough estimate
+      estimatedCost: calculateCost(optimizedContent.length, model),
+    }
+
+    return NextResponse.json({ optimizedContent, metrics })
   } catch (error) {
     console.error("Error optimizing prompt:", error)
     return NextResponse.json(
@@ -1572,12 +1859,31 @@ export async function POST(req: NextRequest) {
   }
 }
 
+function calculateCost(length: number, model: string): number {
+  // Cost per 1K tokens (in USD)
+  const costPer1K: Record<string, number> = {
+    "gpt-4o": 0.01,
+    "gpt-4-turbo": 0.01,
+    "gpt-3.5-turbo": 0.0005,
+    "claude-3-opus": 0.015,
+    "claude-3-sonnet-20241022": 0.003,
+    "gemini-pro": 0.0005,
+    "mixtral-8x7b": 0.0002,
+    "llama-2-70b": 0.0001,
+  }
+
+  const tokens = Math.ceil(length / 4)
+  return (tokens / 1000) * (costPer1K[model] || 0.01)
+}
+
 ```
 
 # src/app/api/v1/prompts/route.ts
 
 ```ts
 import { PromptService } from "@/lib/services/prompt.service"
+import { LLMModel } from "@/types/prompt"
+import { PromptCategory } from "@prisma/client"
 import { getToken } from "next-auth/jwt"
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
@@ -1587,18 +1893,46 @@ const createPromptSchema = z.object({
   content: z.string().min(1, "Content is required"),
   description: z.string().optional(),
   tags: z.array(z.string()),
-  model: z.enum(["gpt-4o", "claude-3-5-sonnet-20241022"] as const),
-  category: z.string().optional(),
+  model: z.custom<LLMModel>((val) => {
+    return (
+      typeof val === "string" &&
+      [
+        "gpt-4o",
+        "gpt-4-turbo",
+        "gpt-3.5-turbo",
+        "claude-3-opus",
+        "claude-3-sonnet-20241022",
+        "gemini-pro",
+        "mixtral-8x7b",
+        "llama-2-70b",
+      ].includes(val as string)
+    )
+  }, "Invalid model"),
+  category: z.nativeEnum(PromptCategory).optional(),
 })
 
 export async function POST(req: NextRequest) {
   try {
     const token = await getToken({ req })
-    if (!token?.id) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
+
+    if (!token) {
+      return NextResponse.json(
+        { message: "Authentication required" },
+        { status: 401 }
+      )
+    }
+
+    if (!token.id) {
+      return NextResponse.json(
+        { message: "Invalid authentication token" },
+        { status: 401 }
+      )
     }
 
     const body = await req.json()
+    console.log("Request body:", body)
+    console.log("User ID from token:", token.id)
+
     const validatedData = createPromptSchema.parse(body)
 
     const prompt = await PromptService.createPrompt({
@@ -1615,9 +1949,32 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    console.error("Error creating prompt:", error)
+    const errorDetails = {
+      name: error instanceof Error ? error.name : "Unknown",
+      message: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : undefined,
+    }
+
+    console.error("Error creating prompt:", errorDetails)
+
+    if (
+      error instanceof Error &&
+      error.message.includes("Foreign key constraint")
+    ) {
+      return NextResponse.json(
+        {
+          message: "User not found in database",
+          error: "Invalid user ID",
+          userId: error.message.includes("Prompt_userId_fkey")
+            ? "User ID constraint violation"
+            : "Other constraint violation",
+        },
+        { status: 400 }
+      )
+    }
+
     return NextResponse.json(
-      { message: "Internal server error" },
+      { message: "Internal server error", error: errorDetails },
       { status: 500 }
     )
   }
@@ -1658,8 +2015,24 @@ const updatePromptSchema = z.object({
   content: z.string().min(1, "Content is required").optional(),
   description: z.string().optional(),
   tags: z.array(z.string()).optional(),
-  model: z.enum(["gpt-4o", "claude-3-5-sonnet-20241022"] as const).optional(),
-  category: z.string().optional(),
+  model: z
+    .custom<LLMModel>((val) => {
+      return (
+        typeof val === "string" &&
+        [
+          "gpt-4o",
+          "gpt-4-turbo",
+          "gpt-3.5-turbo",
+          "claude-3-opus",
+          "claude-3-sonnet-20241022",
+          "gemini-pro",
+          "mixtral-8x7b",
+          "llama-2-70b",
+        ].includes(val as string)
+      )
+    }, "Invalid model")
+    .optional(),
+  category: z.nativeEnum(PromptCategory).optional(),
 })
 
 export async function PUT(req: NextRequest) {
@@ -1824,33 +2197,28 @@ export async function GET(req: NextRequest) {
 # src/app/api/v1/prompts/suggest/route.ts
 
 ```ts
+import { authOptions } from "@/lib/auth"
 import { AIService } from "@/lib/services/ai.service"
-import { getToken } from "next-auth/jwt"
-import { NextRequest, NextResponse } from "next/server"
+import { getServerSession } from "next-auth"
+import { NextResponse } from "next/server"
 
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   try {
-    const token = await getToken({ req })
-    if (!token?.id) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id) {
+      return new NextResponse("Unauthorized", { status: 401 })
     }
 
-    const { content } = await req.json()
+    const { promptId, content } = await req.json()
     if (!content) {
-      return NextResponse.json(
-        { message: "Content is required" },
-        { status: 400 }
-      )
+      return new NextResponse("Content is required", { status: 400 })
     }
 
     const suggestions = await AIService.suggestImprovements(content)
     return NextResponse.json({ suggestions })
   } catch (error) {
-    console.error("Error getting suggestions:", error)
-    return NextResponse.json(
-      { message: "Failed to get suggestions" },
-      { status: 500 }
-    )
+    console.error("[PROMPT_SUGGESTIONS]", error)
+    return new NextResponse("Internal error", { status: 500 })
   }
 }
 
@@ -1859,33 +2227,28 @@ export async function POST(req: NextRequest) {
 # src/app/api/v1/prompts/test-cases/route.ts
 
 ```ts
+import { authOptions } from "@/lib/auth"
 import { AIService } from "@/lib/services/ai.service"
-import { getToken } from "next-auth/jwt"
-import { NextRequest, NextResponse } from "next/server"
+import { getServerSession } from "next-auth"
+import { NextResponse } from "next/server"
 
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   try {
-    const token = await getToken({ req })
-    if (!token?.id) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id) {
+      return new NextResponse("Unauthorized", { status: 401 })
     }
 
-    const { content } = await req.json()
+    const { promptId, content } = await req.json()
     if (!content) {
-      return NextResponse.json(
-        { message: "Content is required" },
-        { status: 400 }
-      )
+      return new NextResponse("Content is required", { status: 400 })
     }
 
     const testCases = await AIService.generateTestCases(content)
     return NextResponse.json({ testCases })
   } catch (error) {
-    console.error("Error generating test cases:", error)
-    return NextResponse.json(
-      { message: "Failed to generate test cases" },
-      { status: 500 }
-    )
+    console.error("[PROMPT_TEST_CASES]", error)
+    return new NextResponse("Internal error", { status: 500 })
   }
 }
 
@@ -2075,7 +2438,7 @@ export default async function RootLayout({
 
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="min-h-screen bg-background">
+      <body className="min-h-screen bg-background" suppressHydrationWarning>
         <PromptProvider>
           <SessionProvider session={session}>
             <ThemeProvider
@@ -2320,15 +2683,19 @@ export default async function Home() {
 # src/app/prompts/[id]/page.tsx
 
 ```tsx
-import { getServerSession } from "next-auth"
-import { redirect } from "next/navigation"
-import Link from "next/link"
+import { AIAnalytics } from "@/components/ai-analytics"
+import { PromptTester } from "@/components/prompt-tester"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { authOptions } from "@/lib/auth"
 import { PromptService } from "@/lib/services/prompt.service"
-import { AIService } from "@/lib/services/ai.service"
-import { PromptTester } from "@/components/prompt-tester"
+import { formatDate } from "@/lib/utils"
+import { GitFork, Heart, History, MessageSquare, Share2, Star, Zap } from "lucide-react"
+import { getServerSession } from "next-auth"
+import Link from "next/link"
+import { redirect } from "next/navigation"
 
 interface PromptDetailPageProps {
     params: {
@@ -2343,6 +2710,11 @@ interface PromptMetrics {
     tokenUsage: number
     successRate: number
     cost: number
+    likes: number
+    saves: number
+    forks: number
+    comments: number
+    runs: number
 }
 
 interface DatabasePrompt {
@@ -2376,6 +2748,11 @@ function parseMetrics(metricsJson: JsonValue): PromptMetrics {
         tokenUsage: metrics?.tokenUsage || 0,
         successRate: metrics?.successRate || 0,
         cost: metrics?.cost || 0,
+        likes: metrics?.likes || 0,
+        saves: metrics?.saves || 0,
+        forks: metrics?.forks || 0,
+        comments: metrics?.comments || 0,
+        runs: metrics?.runs || 0,
     }
 }
 
@@ -2390,8 +2767,6 @@ export default async function PromptDetailPage({ params }: PromptDetailPageProps
         ...rawPrompt,
         metrics: parseMetrics(rawPrompt.metrics),
     }
-    const suggestions = await AIService.suggestImprovements(prompt.content)
-    const testCases = await AIService.generateTestCases(prompt.content)
 
     // Extract variables from prompt content
     const variableRegex = /{{([^}]+)}}/g
@@ -2403,8 +2778,16 @@ export default async function PromptDetailPage({ params }: PromptDetailPageProps
         defaultValue: null,
     }))
 
+    // Get related prompts (placeholder)
+    const relatedPrompts = await PromptService.listPrompts(session.user.id, {
+        category: prompt.category || undefined,
+        limit: 3,
+        excludeId: prompt.id,
+    })
+
     return (
         <div className="container py-6">
+            {/* Header Section */}
             <div className="flex items-center justify-between mb-8">
                 <div>
                     <div className="flex items-center gap-2">
@@ -2420,103 +2803,175 @@ export default async function PromptDetailPage({ params }: PromptDetailPageProps
                     <p className="text-muted-foreground mt-2">
                         {prompt.description || "No description"}
                     </p>
+                    <div className="flex items-center gap-4 mt-4">
+                        <div className="flex items-center gap-2">
+                            <Avatar className="h-6 w-6">
+                                <AvatarImage src="/placeholder-avatar.jpg" />
+                                <AvatarFallback>U</AvatarFallback>
+                            </Avatar>
+                            <span className="text-sm text-muted-foreground">
+                                Created by {session.user.name || "Anonymous"}
+                            </span>
+                        </div>
+                        <span className="text-sm text-muted-foreground">
+                            {formatDate(prompt.createdAt)}
+                        </span>
+                    </div>
                 </div>
                 <div className="flex gap-2">
-                    <Button variant="outline">Delete</Button>
+                    <Button variant="outline" size="sm" className="gap-2">
+                        <Heart className="h-4 w-4" />
+                        <span>{prompt.metrics.likes}</span>
+                    </Button>
+                    <Button variant="outline" size="sm" className="gap-2">
+                        <Star className="h-4 w-4" />
+                        <span>{prompt.metrics.saves}</span>
+                    </Button>
+                    <Button variant="outline" size="sm" className="gap-2">
+                        <GitFork className="h-4 w-4" />
+                        <span>{prompt.metrics.forks}</span>
+                    </Button>
+                    <Button variant="outline" size="sm" className="gap-2">
+                        <Share2 className="h-4 w-4" />
+                        Share
+                    </Button>
                     <Button>Edit Prompt</Button>
                 </div>
             </div>
 
-            <div className="grid gap-6 lg:grid-cols-2">
-                <div className="space-y-6">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Prompt Content</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="font-mono text-sm whitespace-pre-wrap bg-muted p-4 rounded-md">
-                                {prompt.content}
-                            </div>
-                            <div className="mt-4 flex flex-wrap gap-2">
-                                {prompt.tags.map((tag) => (
-                                    <span
-                                        key={tag}
-                                        className="px-2 py-1 bg-secondary text-secondary-foreground rounded-md text-sm"
-                                    >
-                                        {tag}
-                                    </span>
-                                ))}
-                            </div>
-                        </CardContent>
-                    </Card>
+            {/* Main Content */}
+            <div className="grid gap-6 lg:grid-cols-3">
+                {/* Left Column - Main Content */}
+                <div className="lg:col-span-2 space-y-6">
+                    <Tabs defaultValue="content" className="w-full">
+                        <TabsList>
+                            <TabsTrigger value="content">Content</TabsTrigger>
+                            <TabsTrigger value="versions">
+                                <History className="h-4 w-4 mr-2" />
+                                Versions ({prompt.versions.length})
+                            </TabsTrigger>
+                            <TabsTrigger value="test">
+                                <Zap className="h-4 w-4 mr-2" />
+                                Test
+                            </TabsTrigger>
+                            <TabsTrigger value="comments">
+                                <MessageSquare className="h-4 w-4 mr-2" />
+                                Comments ({prompt.metrics.comments})
+                            </TabsTrigger>
+                        </TabsList>
 
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Version History</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-4">
-                                {prompt.versions.map((version, index) => (
-                                    <div
-                                        key={version.id}
-                                        className="border rounded-lg p-4"
-                                    >
-                                        <div className="flex items-center justify-between mb-2">
-                                            <div className="font-medium">
-                                                Version {prompt.versions.length - index}
-                                            </div>
-                                            <div className="text-sm text-muted-foreground">
-                                                {new Date(version.createdAt).toLocaleDateString()}
-                                            </div>
+                        <TabsContent value="content" className="space-y-6">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Prompt Content</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="font-mono text-sm whitespace-pre-wrap bg-muted p-4 rounded-md">
+                                        {prompt.content}
+                                    </div>
+                                    <div className="mt-4 flex flex-wrap gap-2">
+                                        {prompt.tags.map((tag) => (
+                                            <span
+                                                key={tag}
+                                                className="px-2 py-1 bg-secondary text-secondary-foreground rounded-md text-sm"
+                                            >
+                                                {tag}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            {variables.length > 0 && (
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle>Variables</CardTitle>
+                                        <CardDescription>
+                                            Variables that can be customized in this prompt
+                                        </CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="space-y-4">
+                                            {variables.map((variable) => (
+                                                <div key={variable.name} className="flex items-center justify-between">
+                                                    <div>
+                                                        <div className="font-medium">{variable.name}</div>
+                                                        <div className="text-sm text-muted-foreground">
+                                                            {variable.description || "No description"}
+                                                        </div>
+                                                    </div>
+                                                    {variable.required && (
+                                                        <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">
+                                                            Required
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            ))}
                                         </div>
-                                        <div className="font-mono text-sm whitespace-pre-wrap bg-muted p-4 rounded-md">
-                                            {version.content}
+                                    </CardContent>
+                                </Card>
+                            )}
+                        </TabsContent>
+
+                        <TabsContent value="versions">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Version History</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="space-y-4">
+                                        {prompt.versions.map((version, index) => (
+                                            <div
+                                                key={version.id}
+                                                className="border rounded-lg p-4"
+                                            >
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <div className="font-medium">
+                                                        Version {prompt.versions.length - index}
+                                                    </div>
+                                                    <div className="text-sm text-muted-foreground">
+                                                        {formatDate(version.createdAt)}
+                                                    </div>
+                                                </div>
+                                                <div className="font-mono text-sm whitespace-pre-wrap bg-muted p-4 rounded-md">
+                                                    {version.content}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
+
+                        <TabsContent value="test">
+                            <PromptTester
+                                promptId={prompt.id}
+                                content={prompt.content}
+                                model={prompt.model}
+                                variables={variables}
+                            />
+                        </TabsContent>
+
+                        <TabsContent value="comments">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Comments</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="space-y-4">
+                                        {/* Placeholder for comments */}
+                                        <div className="text-center text-muted-foreground py-8">
+                                            No comments yet. Be the first to comment!
                                         </div>
                                     </div>
-                                ))}
-                            </div>
-                        </CardContent>
-                    </Card>
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
+                    </Tabs>
                 </div>
 
+                {/* Right Column - Sidebar */}
                 <div className="space-y-6">
-                    <PromptTester
-                        promptId={prompt.id}
-                        content={prompt.content}
-                        model={prompt.model}
-                        variables={variables}
-                    />
-
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>AI Suggestions</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="prose prose-sm dark:prose-invert">
-                                <div
-                                    dangerouslySetInnerHTML={{
-                                        __html: suggestions.replace(/\n/g, "<br />"),
-                                    }}
-                                />
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Test Cases</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="prose prose-sm dark:prose-invert">
-                                <div
-                                    dangerouslySetInnerHTML={{
-                                        __html: testCases.replace(/\n/g, "<br />"),
-                                    }}
-                                />
-                            </div>
-                        </CardContent>
-                    </Card>
-
                     <Card>
                         <CardHeader>
                             <CardTitle>Performance Metrics</CardTitle>
@@ -2555,9 +3010,44 @@ export default async function PromptDetailPage({ params }: PromptDetailPageProps
                                         ${prompt.metrics.cost.toFixed(4)}
                                     </div>
                                 </div>
+                                <div>
+                                    <div className="text-sm font-medium text-muted-foreground">
+                                        Total Runs
+                                    </div>
+                                    <div className="mt-1 text-2xl font-bold">
+                                        {prompt.metrics.runs}
+                                    </div>
+                                </div>
                             </div>
                         </CardContent>
                     </Card>
+
+                    {/* AI Analytics Component */}
+                    <AIAnalytics promptId={prompt.id} content={prompt.content} />
+
+                    {relatedPrompts.prompts.length > 0 && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Related Prompts</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="space-y-4">
+                                    {relatedPrompts.prompts.map((relatedPrompt) => (
+                                        <Link
+                                            key={relatedPrompt.id}
+                                            href={`/prompts/${relatedPrompt.id}`}
+                                            className="block p-4 rounded-lg border hover:border-primary/50 transition-colors"
+                                        >
+                                            <div className="font-medium">{relatedPrompt.name}</div>
+                                            <div className="text-sm text-muted-foreground">
+                                                {relatedPrompt.description || "No description"}
+                                            </div>
+                                        </Link>
+                                    ))}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
                 </div>
             </div>
         </div>
@@ -2572,6 +3062,7 @@ export default async function PromptDetailPage({ params }: PromptDetailPageProps
 "use client"
 
 import { PromptEditor } from "@/components/prompt-editor"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -2585,7 +3076,10 @@ import {
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/use-toast"
+import { PromptCategory, Version } from "@prisma/client"
+import { X } from "lucide-react"
 import { useState } from "react"
+import { useSession } from "next-auth/react"
 
 const AVAILABLE_MODELS = [
     { id: "gpt-4o", name: "GPT-4o" },
@@ -2598,13 +3092,43 @@ const AVAILABLE_MODELS = [
     { id: "llama-2-70b", name: "Llama 2 70B" },
 ] as const
 
+const PROMPT_CATEGORIES = [
+    { id: "General", name: "General" },
+    { id: "CodeGeneration", name: "Code Generation" },
+    { id: "ContentCreation", name: "Content Creation" },
+    { id: "DataAnalysis", name: "Data Analysis" },
+    { id: "Translation", name: "Translation" },
+    { id: "Summarization", name: "Summarization" },
+    { id: "QuestionAnswering", name: "Question Answering" },
+    { id: "TaskPlanning", name: "Task Planning" },
+    { id: "Roleplay", name: "Roleplay" },
+    { id: "SystemDesign", name: "System Design" },
+    { id: "Debugging", name: "Debugging" },
+    { id: "Testing", name: "Testing" },
+    { id: "Documentation", name: "Documentation" },
+    { id: "CreativeWriting", name: "Creative Writing" },
+    { id: "Business", name: "Business" },
+    { id: "Education", name: "Education" },
+    { id: "Research", name: "Research" },
+] as const
+
 export default function NewPromptPage() {
+    const { data: session } = useSession()
     const [content, setContent] = useState("")
     const [name, setName] = useState("")
     const [description, setDescription] = useState("")
     const [model, setModel] = useState<string>(AVAILABLE_MODELS[0].id)
+    const [category, setCategory] = useState<PromptCategory>("General")
+    const [tags, setTags] = useState<string[]>([])
     const [isAnalyzing, setIsAnalyzing] = useState(false)
     const [isOptimizing, setIsOptimizing] = useState(false)
+    const [versions, setVersions] = useState<Version[]>([])
+    const [activeVersionId, setActiveVersionId] = useState<string | null>(null)
+    const [isComparing, setIsComparing] = useState(false)
+    const [compareVersions, setCompareVersions] = useState<{
+        version1: Version
+        version2: Version
+    }>()
     const { toast } = useToast()
 
     const handleAnalyze = async () => {
@@ -2630,6 +3154,8 @@ export default function NewPromptPage() {
 
             setName(analysis.suggestedName || "")
             setDescription(analysis.description || "")
+            setCategory(analysis.category || "General")
+            setTags(analysis.tags || [])
 
             toast({
                 title: "Prompt Analyzed",
@@ -2648,10 +3174,10 @@ export default function NewPromptPage() {
     }
 
     const handleOptimize = async () => {
-        if (!content) {
+        if (!content || !activeVersionId) {
             toast({
-                title: "No Content",
-                description: "Please write your prompt first.",
+                title: "Cannot Optimize",
+                description: "Please save the prompt first.",
                 variant: "destructive",
             })
             return
@@ -2659,16 +3185,37 @@ export default function NewPromptPage() {
 
         setIsOptimizing(true)
         try {
-            const response = await fetch("/api/v1/prompts/optimize", {
+            // First, get the optimized content
+            const optimizeResponse = await fetch("/api/v1/prompts/optimize", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ content, model }),
             })
 
-            if (!response.ok) throw new Error("Failed to optimize prompt")
-            const { optimizedContent } = await response.json()
+            if (!optimizeResponse.ok) throw new Error("Failed to optimize prompt")
+            const { optimizedContent, metrics } = await optimizeResponse.json()
 
-            setContent(optimizedContent)
+            // Then, create a new version through the API
+            const versionResponse = await fetch(`/api/v1/prompts/${activeVersionId}/versions/optimize`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    content: optimizedContent,
+                    model,
+                    metrics,
+                }),
+            })
+
+            if (!versionResponse.ok) throw new Error("Failed to create version")
+            const version = await versionResponse.json()
+
+            setVersions([...versions, version])
+            setCompareVersions({
+                version1: versions.find((v) => v.type === "original")!,
+                version2: version,
+            })
+            setIsComparing(true)
+
             toast({
                 title: "Prompt Optimized",
                 description: "Your prompt has been optimized for better results.",
@@ -2686,6 +3233,15 @@ export default function NewPromptPage() {
     }
 
     const handleSave = async () => {
+        if (!session) {
+            toast({
+                title: "Authentication Required",
+                description: "Please sign in to save your prompt.",
+                variant: "destructive",
+            })
+            return
+        }
+
         if (!content) {
             toast({
                 title: "No Content",
@@ -2695,24 +3251,72 @@ export default function NewPromptPage() {
             return
         }
 
-        // Auto-analyze if name or description is empty
-        if (!name || !description) {
-            await handleAnalyze()
-        }
-
         try {
-            const response = await fetch("/api/v1/prompts", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    name,
-                    content,
-                    description,
-                    model,
-                }),
-            })
+            // Auto-analyze if metadata is empty
+            if (!name || !description || !category || tags.length === 0) {
+                setIsAnalyzing(true)
+                const analysisResponse = await fetch("/api/v1/prompts/analyze", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ content }),
+                })
 
-            if (!response.ok) throw new Error("Failed to save prompt")
+                if (!analysisResponse.ok) throw new Error("Failed to analyze prompt")
+                const analysis = await analysisResponse.json()
+
+                // Update state with analysis results
+                const analyzedName = analysis.suggestedName || name
+                const analyzedDescription = analysis.description || description
+                const analyzedCategory = analysis.category || category
+                const analyzedTags = analysis.tags || tags
+
+                // Create the prompt with analyzed data
+                const response = await fetch("/api/v1/prompts", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        name: analyzedName,
+                        content,
+                        description: analyzedDescription,
+                        model,
+                        category: analyzedCategory,
+                        tags: analyzedTags,
+                    }),
+                })
+
+                if (!response.ok) throw new Error("Failed to create prompt")
+                const prompt = await response.json()
+
+                // Update state with the created prompt
+                setName(analyzedName)
+                setDescription(analyzedDescription)
+                setCategory(analyzedCategory)
+                setTags(analyzedTags)
+                setActiveVersionId(prompt.id)
+                setVersions(prompt.versions || [])
+
+            } else {
+                // Create the prompt with existing data
+                const response = await fetch("/api/v1/prompts", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        name,
+                        content,
+                        description,
+                        model,
+                        category,
+                        tags,
+                    }),
+                })
+
+                if (!response.ok) throw new Error("Failed to create prompt")
+                const prompt = await response.json()
+
+                // Update state with the created prompt
+                setActiveVersionId(prompt.id)
+                setVersions(prompt.versions || [])
+            }
 
             toast({
                 title: "Prompt Saved",
@@ -2725,7 +3329,86 @@ export default function NewPromptPage() {
                 description: "Failed to save the prompt. Please try again.",
                 variant: "destructive",
             })
+        } finally {
+            setIsAnalyzing(false)
         }
+    }
+
+    const handleVersionSelect = (version: Version) => {
+        setContent(version.content)
+        setIsComparing(false)
+    }
+
+    const handleVersionCompare = (version1: Version, version2: Version) => {
+        setCompareVersions({ version1, version2 })
+        setIsComparing(true)
+    }
+
+    const handleVersionDelete = async (version: Version) => {
+        try {
+            const response = await fetch(`/api/v1/prompts/${version.promptId}/versions/${version.id}/delete`, {
+                method: "DELETE",
+            })
+
+            if (!response.ok) throw new Error("Failed to delete version")
+            setVersions(versions.filter((v) => v.id !== version.id))
+            toast({
+                title: "Version Deleted",
+                description: "The version has been deleted successfully.",
+            })
+        } catch (error) {
+            console.error("Error deleting version:", error)
+            toast({
+                title: "Delete Failed",
+                description: "Failed to delete the version. Please try again.",
+                variant: "destructive",
+            })
+        }
+    }
+
+    const handleVersionActivate = async (version: Version) => {
+        try {
+            const response = await fetch(`/api/v1/prompts/${version.promptId}/versions/${version.id}/activate`, {
+                method: "POST",
+            })
+
+            if (!response.ok) throw new Error("Failed to activate version")
+            setVersions(
+                versions.map((v) => ({
+                    ...v,
+                    isActive: v.id === version.id,
+                }))
+            )
+            setActiveVersionId(version.id)
+            setContent(version.content)
+            toast({
+                title: "Version Activated",
+                description: "The version has been set as active.",
+            })
+        } catch (error) {
+            console.error("Error activating version:", error)
+            toast({
+                title: "Activation Failed",
+                description: "Failed to activate the version. Please try again.",
+                variant: "destructive",
+            })
+        }
+    }
+
+    const handleAcceptOptimized = () => {
+        if (!compareVersions) return
+        handleVersionActivate(compareVersions.version2)
+        setIsComparing(false)
+    }
+
+    const handleRejectOptimized = () => {
+        if (!compareVersions) return
+        handleVersionDelete(compareVersions.version2)
+        setIsComparing(false)
+    }
+
+    const removeTag = (tagToRemove: string) => {
+        setTags(tags.filter((tag) => tag !== tagToRemove))
     }
 
     return (
@@ -2739,20 +3422,24 @@ export default function NewPromptPage() {
 
             <div className="grid gap-6">
                 <PromptEditor
+                    promptId={activeVersionId || ""}
                     content={content}
                     onChange={setContent}
                     onAnalyze={handleAnalyze}
                     isAnalyzing={isAnalyzing}
+                    versions={versions}
+                    onVersionSelect={handleVersionSelect}
+                    onVersionCompare={handleVersionCompare}
+                    onVersionDelete={handleVersionDelete}
+                    onVersionActivate={handleVersionActivate}
+                    activeVersionId={activeVersionId}
+                    isComparing={isComparing}
+                    compareVersions={compareVersions}
+                    onAcceptOptimized={handleAcceptOptimized}
+                    onRejectOptimized={handleRejectOptimized}
                 />
 
                 <div className="flex gap-2">
-                    <Button
-                        onClick={handleAnalyze}
-                        variant="secondary"
-                        disabled={isAnalyzing || !content}
-                    >
-                        {isAnalyzing ? "Analyzing..." : "Analyze & Generate Metadata"}
-                    </Button>
                     <Button
                         onClick={handleOptimize}
                         variant="secondary"
@@ -2773,7 +3460,6 @@ export default function NewPromptPage() {
                                     setName(e.target.value)
                                 }
                                 placeholder="Click 'Analyze' to generate a name"
-                                readOnly
                             />
                         </div>
 
@@ -2786,8 +3472,45 @@ export default function NewPromptPage() {
                                     setDescription(e.target.value)
                                 }
                                 placeholder="Click 'Analyze' to generate a description"
-                                readOnly
                             />
+                        </div>
+
+                        <div>
+                            <Label htmlFor="category">Category</Label>
+                            <Select value={category} onValueChange={(value: PromptCategory) => setCategory(value)}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select a category" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {PROMPT_CATEGORIES.map((cat) => (
+                                        <SelectItem key={cat.id} value={cat.id}>
+                                            {cat.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div>
+                            <Label>Tags</Label>
+                            <div className="flex flex-wrap gap-2 mt-2">
+                                {tags.map((tag) => (
+                                    <Badge key={tag} variant="secondary">
+                                        {tag}
+                                        <button
+                                            onClick={() => removeTag(tag)}
+                                            className="ml-1 hover:text-destructive"
+                                        >
+                                            <X className="h-3 w-3" />
+                                        </button>
+                                    </Badge>
+                                ))}
+                                {tags.length === 0 && (
+                                    <p className="text-sm text-muted-foreground">
+                                        Click &apos;Analyze&apos; to generate tags
+                                    </p>
+                                )}
+                            </div>
                         </div>
 
                         <div>
@@ -2806,7 +3529,7 @@ export default function NewPromptPage() {
                             </Select>
                         </div>
 
-                        <Button onClick={handleSave} disabled={!content}>
+                        <Button onClick={handleSave} className="w-full">
                             Save Prompt
                         </Button>
                     </div>
@@ -3369,6 +4092,186 @@ export default async function TestPage() {
 } 
 ```
 
+# src/components/ai-analytics.tsx
+
+```tsx
+"use client"
+
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useToast } from "@/components/ui/use-toast"
+import { Loader2, Sparkles, TestTube } from "lucide-react"
+import { useState } from "react"
+
+interface AIAnalyticsProps {
+    promptId: string
+    content: string
+}
+
+export function AIAnalytics({ promptId, content }: AIAnalyticsProps) {
+    const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false)
+    const [isLoadingTestCases, setIsLoadingTestCases] = useState(false)
+    const [suggestions, setSuggestions] = useState<string | null>(null)
+    const [testCases, setTestCases] = useState<string | null>(null)
+    const { toast } = useToast()
+
+    const generateSuggestions = async () => {
+        setIsLoadingSuggestions(true)
+        toast({
+            title: "Generating Suggestions",
+            description: "AI is analyzing your prompt...",
+        })
+
+        try {
+            const response = await fetch("/api/v1/prompts/suggest", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ promptId, content }),
+            })
+
+            if (!response.ok) throw new Error("Failed to generate suggestions")
+            const data = await response.json()
+            setSuggestions(data.suggestions)
+
+            toast({
+                title: "Suggestions Ready",
+                description: "AI has analyzed your prompt and generated suggestions.",
+            })
+        } catch (error) {
+            console.error("Error generating suggestions:", error)
+            toast({
+                title: "Generation Failed",
+                description: "Failed to generate suggestions. Please try again.",
+                variant: "destructive",
+            })
+        } finally {
+            setIsLoadingSuggestions(false)
+        }
+    }
+
+    const generateTestCases = async () => {
+        setIsLoadingTestCases(true)
+        toast({
+            title: "Generating Test Cases",
+            description: "AI is creating test cases...",
+        })
+
+        try {
+            const response = await fetch("/api/v1/prompts/test-cases", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ promptId, content }),
+            })
+
+            if (!response.ok) throw new Error("Failed to generate test cases")
+            const data = await response.json()
+            setTestCases(data.testCases)
+
+            toast({
+                title: "Test Cases Ready",
+                description: "AI has generated test cases for your prompt.",
+            })
+        } catch (error) {
+            console.error("Error generating test cases:", error)
+            toast({
+                title: "Generation Failed",
+                description: "Failed to generate test cases. Please try again.",
+                variant: "destructive",
+            })
+        } finally {
+            setIsLoadingTestCases(false)
+        }
+    }
+
+    return (
+        <>
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                        AI Suggestions
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={generateSuggestions}
+                            disabled={isLoadingSuggestions}
+                        >
+                            {isLoadingSuggestions ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Generating...
+                                </>
+                            ) : (
+                                <>
+                                    <Sparkles className="mr-2 h-4 w-4" />
+                                    Generate
+                                </>
+                            )}
+                        </Button>
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    {suggestions ? (
+                        <div className="prose prose-sm dark:prose-invert">
+                            <div
+                                dangerouslySetInnerHTML={{
+                                    __html: suggestions.replace(/\n/g, "<br />"),
+                                }}
+                            />
+                        </div>
+                    ) : (
+                        <div className="text-center text-muted-foreground py-8">
+                            Click generate to get AI suggestions for improving your prompt.
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                        Test Cases
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={generateTestCases}
+                            disabled={isLoadingTestCases}
+                        >
+                            {isLoadingTestCases ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Generating...
+                                </>
+                            ) : (
+                                <>
+                                    <TestTube className="mr-2 h-4 w-4" />
+                                    Generate
+                                </>
+                            )}
+                        </Button>
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    {testCases ? (
+                        <div className="prose prose-sm dark:prose-invert">
+                            <div
+                                dangerouslySetInnerHTML={{
+                                    __html: testCases.replace(/\n/g, "<br />"),
+                                }}
+                            />
+                        </div>
+                    ) : (
+                        <div className="text-center text-muted-foreground py-8">
+                            Click generate to create AI test cases for your prompt.
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+        </>
+    )
+}
+
+```
+
 # src/components/api-key-list.tsx
 
 ```tsx
@@ -3729,15 +4632,34 @@ export function MainNav() {
 ```tsx
 "use client"
 
-import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Version, VersionMetrics } from "@/types/version"
+import { VersionType } from "@prisma/client"
+import { JsonValue } from "@prisma/client/runtime/library"
+import { useEffect, useRef, useState } from "react"
+import { VersionCompare } from "./version-compare"
+import { VersionHistory } from "./version-history"
 
 interface PromptEditorProps {
+  promptId: string
   content: string
   onChange: (content: string) => void
-  onAnalyze?: () => void
-  isAnalyzing?: boolean
+  onAnalyze: (content: string) => void
+  isAnalyzing: boolean
+  versions: RawVersion[]
+  onVersionSelect: (version: Version) => void
+  onVersionCompare: (version1: Version, version2: Version) => void
+  onVersionDelete: (version: Version) => void
+  onVersionActivate: (version: Version) => void
+  activeVersionId: string | null
+  isComparing: boolean
+  compareVersions?: {
+    version1: RawVersion
+    version2: RawVersion
+  }
+  onAcceptOptimized: () => void
+  onRejectOptimized: () => void
 }
 
 interface Suggestion {
@@ -3745,11 +4667,54 @@ interface Suggestion {
   description: string
 }
 
+interface RawVersion {
+  id: string;
+  promptId: string;
+  content: string;
+  description: string | null;
+  model: string;
+  type: VersionType;
+  metrics: JsonValue;
+  createdAt: string | Date;
+  isActive: boolean;
+}
+
+function convertMetrics(metrics: JsonValue): VersionMetrics | null {
+  if (!metrics || typeof metrics !== 'object') return null
+  const m = metrics as Record<string, number>
+  return {
+    tokenCount: m.tokenCount ?? 0,
+    estimatedCost: m.estimatedCost ?? 0,
+    responseTime: m.responseTime ?? 0,
+    successRate: m.successRate ?? 0,
+    ...m
+  }
+}
+
+function convertVersion(v: RawVersion): Version {
+  return {
+    ...v,
+    metrics: convertMetrics(v.metrics),
+    createdAt: v.createdAt instanceof Date ? v.createdAt : new Date(v.createdAt)
+  }
+}
+
 export function PromptEditor({
+  promptId,
   content,
   onChange,
   onAnalyze,
   isAnalyzing,
+  versions,
+  onVersionSelect,
+  onVersionCompare,
+  onVersionDelete,
+  onVersionActivate,
+  activeVersionId,
+  isComparing,
+  compareVersions,
+  onAcceptOptimized,
+  onRejectOptimized
 }: PromptEditorProps) {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
@@ -3759,6 +4724,7 @@ export function PromptEditor({
   })
   const editorRef = useRef<HTMLTextAreaElement>(null)
   const suggestionsRef = useRef<HTMLDivElement>(null)
+  const [editorContent, setEditorContent] = useState(content || '')
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -3840,56 +4806,88 @@ export function PromptEditor({
     textarea.setSelectionRange(newCursorPosition, newCursorPosition)
   }
 
+  const handleAnalyze = async () => {
+    try {
+      onAnalyze(editorContent)
+    } catch (error) {
+      console.error('Failed to analyze prompt:', error)
+    }
+  }
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Prompt Editor</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="relative">
-          <textarea
-            ref={editorRef}
-            value={content}
-            onChange={(e) => onChange(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className="w-full min-h-[300px] p-4 font-mono text-sm bg-background resize-none border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-            placeholder="Write your prompt here..."
-          />
-          {showSuggestions && (
-            <div
-              ref={suggestionsRef}
-              className="absolute z-10 w-64 max-h-48 overflow-y-auto bg-background border rounded-md shadow-lg"
-              style={{
-                top: cursorPosition.top + "px",
-                left: cursorPosition.left + "px",
-              }}
-            >
-              {suggestions.map((suggestion, index) => (
-                <div
-                  key={index}
-                  className="p-2 hover:bg-accent cursor-pointer"
-                  onClick={() => insertSuggestion(suggestion.text)}
-                >
-                  <div className="font-medium">{suggestion.text}</div>
-                  <div className="text-sm text-muted-foreground">
-                    {suggestion.description}
+    <div className="flex h-[calc(100vh-12rem)]">
+      <div className="flex-1">
+        <Card className="h-full">
+          <CardHeader>
+            <CardTitle>Prompt Editor</CardTitle>
+          </CardHeader>
+          <CardContent className="h-[calc(100%-5rem)]">
+            {isComparing && compareVersions ? (
+              <VersionCompare
+                version1={convertVersion(compareVersions.version1)}
+                version2={convertVersion(compareVersions.version2)}
+                onAccept={onAcceptOptimized!}
+                onReject={onRejectOptimized!}
+                className="h-full"
+              />
+            ) : (
+              <div className="relative h-full">
+                <textarea
+                  ref={editorRef}
+                  value={content}
+                  onChange={(e) => onChange(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  className="w-full h-[calc(100%-4rem)] p-4 font-mono text-sm bg-background resize-none border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                  placeholder="Write your prompt here..."
+                />
+                {showSuggestions && (
+                  <div
+                    ref={suggestionsRef}
+                    className="absolute z-10 w-64 max-h-48 overflow-y-auto bg-background border rounded-md shadow-lg"
+                    style={{
+                      top: cursorPosition.top + "px",
+                      left: cursorPosition.left + "px",
+                    }}
+                  >
+                    {suggestions.map((suggestion, index) => (
+                      <div
+                        key={index}
+                        className="p-2 hover:bg-accent cursor-pointer"
+                        onClick={() => insertSuggestion(suggestion.text)}
+                      >
+                        <div className="font-medium">{suggestion.text}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {suggestion.description}
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-        {onAnalyze && (
-          <Button
-            onClick={onAnalyze}
-            disabled={isAnalyzing || !content}
-            className="w-full mt-4"
-          >
-            {isAnalyzing ? "Analyzing..." : "Analyze & Improve"}
-          </Button>
-        )}
-      </CardContent>
-    </Card>
+                )}
+                {onAnalyze && (
+                  <Button
+                    onClick={() => onAnalyze(editorContent)}
+                    disabled={isAnalyzing || !content}
+                    className="w-full mt-4"
+                  >
+                    {isAnalyzing ? "Analyzing..." : "Analyze"}
+                  </Button>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+      {versions && (
+        <VersionHistory
+          versions={versions.map(convertVersion)}
+          activeVersionId={activeVersionId || undefined}
+          onVersionSelect={onVersionSelect}
+          onVersionCompare={onVersionCompare}
+          onVersionDelete={onVersionDelete}
+          onVersionActivate={onVersionActivate}
+        />
+      )}
+    </div>
   )
 } 
 ```
@@ -5587,6 +6585,59 @@ Label.displayName = LabelPrimitive.Root.displayName
 export { Label } 
 ```
 
+# src/components/ui/scroll-area.tsx
+
+```tsx
+"use client"
+
+import * as React from "react"
+import * as ScrollAreaPrimitive from "@radix-ui/react-scroll-area"
+
+import { cn } from "@/lib/utils"
+
+const ScrollArea = React.forwardRef<
+    React.ElementRef<typeof ScrollAreaPrimitive.Root>,
+    React.ComponentPropsWithoutRef<typeof ScrollAreaPrimitive.Root>
+>(({ className, children, ...props }, ref) => (
+    <ScrollAreaPrimitive.Root
+        ref={ref}
+        className={cn("relative overflow-hidden", className)}
+        {...props}
+    >
+        <ScrollAreaPrimitive.Viewport className="h-full w-full rounded-[inherit]">
+            {children}
+        </ScrollAreaPrimitive.Viewport>
+        <ScrollBar />
+        <ScrollAreaPrimitive.Corner />
+    </ScrollAreaPrimitive.Root>
+))
+ScrollArea.displayName = ScrollAreaPrimitive.Root.displayName
+
+const ScrollBar = React.forwardRef<
+    React.ElementRef<typeof ScrollAreaPrimitive.ScrollAreaScrollbar>,
+    React.ComponentPropsWithoutRef<typeof ScrollAreaPrimitive.ScrollAreaScrollbar>
+>(({ className, orientation = "vertical", ...props }, ref) => (
+    <ScrollAreaPrimitive.ScrollAreaScrollbar
+        ref={ref}
+        orientation={orientation}
+        className={cn(
+            "flex touch-none select-none transition-colors",
+            orientation === "vertical" &&
+            "h-full w-2.5 border-l border-l-transparent p-[1px]",
+            orientation === "horizontal" &&
+            "h-2.5 border-t border-t-transparent p-[1px]",
+            className
+        )}
+        {...props}
+    >
+        <ScrollAreaPrimitive.ScrollAreaThumb className="relative flex-1 rounded-full bg-border" />
+    </ScrollAreaPrimitive.ScrollAreaScrollbar>
+))
+ScrollBar.displayName = ScrollAreaPrimitive.ScrollAreaScrollbar.displayName
+
+export { ScrollArea, ScrollBar } 
+```
+
 # src/components/ui/select.tsx
 
 ```tsx
@@ -5704,6 +6755,102 @@ SelectSeparator.displayName = SelectPrimitive.Separator.displayName
 export {
     Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue
 }
+
+```
+
+# src/components/ui/separator.tsx
+
+```tsx
+"use client"
+
+import { cn } from "@/lib/utils"
+import * as SeparatorPrimitive from "@radix-ui/react-separator"
+import * as React from "react"
+
+const Separator = React.forwardRef<
+    React.ElementRef<typeof SeparatorPrimitive.Root>,
+    React.ComponentPropsWithoutRef<typeof SeparatorPrimitive.Root>
+>(
+    (
+        { className, orientation = "horizontal", decorative = true, ...props },
+        ref
+    ) => (
+        <SeparatorPrimitive.Root
+            ref={ref}
+            decorative={decorative}
+            orientation={orientation}
+            className={cn(
+                "shrink-0 bg-border",
+                orientation === "horizontal" ? "h-[1px] w-full" : "h-full w-[1px]",
+                className
+            )}
+            {...props}
+        />
+    )
+)
+Separator.displayName = SeparatorPrimitive.Root.displayName
+
+export { Separator }
+
+```
+
+# src/components/ui/tabs.tsx
+
+```tsx
+"use client"
+
+import { cn } from "@/lib/utils"
+import * as TabsPrimitive from "@radix-ui/react-tabs"
+import * as React from "react"
+
+const Tabs = TabsPrimitive.Root
+
+const TabsList = React.forwardRef<
+    React.ElementRef<typeof TabsPrimitive.List>,
+    React.ComponentPropsWithoutRef<typeof TabsPrimitive.List>
+>(({ className, ...props }, ref) => (
+    <TabsPrimitive.List
+        ref={ref}
+        className={cn(
+            "inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground",
+            className
+        )}
+        {...props}
+    />
+))
+TabsList.displayName = TabsPrimitive.List.displayName
+
+const TabsTrigger = React.forwardRef<
+    React.ElementRef<typeof TabsPrimitive.Trigger>,
+    React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger>
+>(({ className, ...props }, ref) => (
+    <TabsPrimitive.Trigger
+        ref={ref}
+        className={cn(
+            "inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm",
+            className
+        )}
+        {...props}
+    />
+))
+TabsTrigger.displayName = TabsPrimitive.Trigger.displayName
+
+const TabsContent = React.forwardRef<
+    React.ElementRef<typeof TabsPrimitive.Content>,
+    React.ComponentPropsWithoutRef<typeof TabsPrimitive.Content>
+>(({ className, ...props }, ref) => (
+    <TabsPrimitive.Content
+        ref={ref}
+        className={cn(
+            "mt-2 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+            className
+        )}
+        {...props}
+    />
+))
+TabsContent.displayName = TabsPrimitive.Content.displayName
+
+export { Tabs, TabsContent, TabsList, TabsTrigger }
 
 ```
 
@@ -5871,7 +7018,7 @@ import * as React from "react"
 import type { ToastActionElement, ToastProps } from "@/components/ui/toast"
 
 const TOAST_LIMIT = 1
-const TOAST_REMOVE_DELAY = 1000000
+const TOAST_REMOVE_DELAY = 5000
 
 type ToasterToast = ToastProps & {
   id: string
@@ -6160,6 +7307,243 @@ export function UserNav() {
 
 ```
 
+# src/components/version-compare.tsx
+
+```tsx
+"use client"
+
+import { cn } from "@/lib/utils"
+import { Version } from "@/types/version"
+import { Check, X } from "lucide-react"
+import { Button } from "./ui/button"
+import { ScrollArea } from "./ui/scroll-area"
+
+interface VersionCompareProps {
+    version1: Version
+    version2: Version
+    onAccept: () => void
+    onReject: () => void
+    className?: string
+}
+
+export function VersionCompare({
+    version1,
+    version2,
+    onAccept,
+    onReject,
+    className,
+}: VersionCompareProps) {
+    const tokenDiff = (version2.metrics?.tokenCount || 0) - (version1.metrics?.tokenCount || 0)
+    const costDiff = (version2.metrics?.estimatedCost || 0) - (version1.metrics?.estimatedCost || 0)
+
+    return (
+        <div className={cn("flex flex-col h-full", className)}>
+            <div className="flex items-center justify-between p-4 border-b">
+                <h3 className="font-semibold">Compare Versions</h3>
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive"
+                        onClick={onReject}
+                    >
+                        <X className="h-4 w-4 mr-1" />
+                        Reject
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-primary"
+                        onClick={onAccept}
+                    >
+                        <Check className="h-4 w-4 mr-1" />
+                        Accept
+                    </Button>
+                </div>
+            </div>
+            <div className="flex-1 grid grid-cols-2 divide-x">
+                <div className="flex flex-col">
+                    <div className="p-3 border-b bg-muted/50">
+                        <h4 className="text-sm font-medium">Original Version</h4>
+                        <div className="text-xs text-muted-foreground mt-1">
+                            {version1.metrics && (
+                                <>
+                                    <span>Tokens: {version1.metrics.tokenCount}</span>
+                                    <span className="mx-2">•</span>
+                                    <span>Cost: ${version1.metrics.estimatedCost?.toFixed(4)}</span>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                    <ScrollArea className="flex-1">
+                        <pre className="p-4 text-sm whitespace-pre-wrap">{version1.content}</pre>
+                    </ScrollArea>
+                </div>
+                <div className="flex flex-col">
+                    <div className="p-3 border-b bg-muted/50">
+                        <h4 className="text-sm font-medium">Optimized Version</h4>
+                        <div className="text-xs text-muted-foreground mt-1">
+                            {version2.metrics && (
+                                <>
+                                    <span>
+                                        Tokens: {version2.metrics.tokenCount}{" "}
+                                        <span className={cn("ml-1", tokenDiff > 0 ? "text-red-500" : "text-green-500")}>
+                                            ({tokenDiff > 0 ? "+" : ""}
+                                            {tokenDiff})
+                                        </span>
+                                    </span>
+                                    <span className="mx-2">•</span>
+                                    <span>
+                                        Cost: ${version2.metrics.estimatedCost?.toFixed(4)}{" "}
+                                        <span className={cn("ml-1", costDiff > 0 ? "text-red-500" : "text-green-500")}>
+                                            ({costDiff > 0 ? "+" : ""}${costDiff.toFixed(4)})
+                                        </span>
+                                    </span>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                    <ScrollArea className="flex-1">
+                        <pre className="p-4 text-sm whitespace-pre-wrap">{version2.content}</pre>
+                    </ScrollArea>
+                </div>
+            </div>
+        </div>
+    )
+} 
+```
+
+# src/components/version-history.tsx
+
+```tsx
+"use client"
+
+import { cn } from "@/lib/utils"
+import { Version } from "@/types/version"
+import { formatDistanceToNow } from "date-fns"
+import { Check, Clock, GitCompare, Trash } from "lucide-react"
+import { Button } from "./ui/button"
+import { ScrollArea } from "./ui/scroll-area"
+
+interface VersionHistoryProps {
+    versions: Version[]
+    activeVersionId?: string
+    onVersionSelect: (version: Version) => void
+    onVersionCompare: (version1: Version, version2: Version) => void
+    onVersionDelete: (version: Version) => void
+    onVersionActivate: (version: Version) => void
+    className?: string
+}
+
+export function VersionHistory({
+    versions,
+    activeVersionId,
+    onVersionSelect,
+    onVersionCompare,
+    onVersionDelete,
+    onVersionActivate,
+    className,
+}: VersionHistoryProps) {
+    const sortedVersions = [...versions].sort((a, b) => {
+        if (a.type === "original" && b.type !== "original") return -1
+        if (a.type !== "original" && b.type === "original") return 1
+        return b.createdAt.getTime() - a.createdAt.getTime()
+    })
+
+    const originalVersion = versions.find((v) => v.type === "original")
+
+    return (
+        <div className={cn("w-80 border-l", className)}>
+            <div className="p-4 border-b">
+                <h3 className="font-semibold">Version History</h3>
+            </div>
+            <ScrollArea className="h-[calc(100vh-10rem)]">
+                <div className="p-4 space-y-4">
+                    {sortedVersions.map((version) => {
+                        const isActive = version.id === activeVersionId
+                        const isOriginal = version.type === "original"
+                        const timeAgo = formatDistanceToNow(version.createdAt, { addSuffix: true })
+
+                        return (
+                            <div
+                                key={version.id}
+                                className={cn(
+                                    "p-3 rounded-lg border transition-colors",
+                                    isActive && "border-primary bg-muted",
+                                    "hover:bg-muted/50 cursor-pointer"
+                                )}
+                                onClick={() => onVersionSelect(version)}
+                            >
+                                <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-sm font-medium">
+                                            {isOriginal ? "Original" : `Optimized (${version.model})`}
+                                        </span>
+                                        {version.isActive && (
+                                            <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
+                                                Active
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                        {!isOriginal && originalVersion && (
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={(e) => {
+                                                    e.stopPropagation()
+                                                    onVersionCompare(originalVersion, version)
+                                                }}
+                                            >
+                                                <GitCompare className="h-4 w-4" />
+                                            </Button>
+                                        )}
+                                        {!version.isActive && (
+                                            <>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        onVersionActivate(version)
+                                                    }}
+                                                >
+                                                    <Check className="h-4 w-4" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        onVersionDelete(version)
+                                                    }}
+                                                >
+                                                    <Trash className="h-4 w-4" />
+                                                </Button>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                    <Clock className="h-3 w-3" />
+                                    <span>{timeAgo}</span>
+                                </div>
+                                {version.metrics && (
+                                    <div className="mt-2 text-xs text-muted-foreground">
+                                        <div>Tokens: {version.metrics.tokenCount}</div>
+                                        <div>Cost: ${version.metrics.estimatedCost?.toFixed(4)}</div>
+                                    </div>
+                                )}
+                            </div>
+                        )
+                    })}
+                </div>
+            </ScrollArea>
+        </div>
+    )
+} 
+```
+
 # src/contexts/prompt-context.tsx
 
 ```tsx
@@ -6349,13 +7733,221 @@ export function useDebounce<T>(value: T, delay: number): T {
 
 ```
 
+# src/hooks/use-versions.ts
+
+```ts
+import { useState, useCallback } from "react"
+import { Version, VersionComparison } from "@/types/version"
+import { useToast } from "@/components/ui/use-toast"
+
+interface UseVersionsOptions {
+  promptId: string
+}
+
+export function useVersions({ promptId }: UseVersionsOptions) {
+  const [versions, setVersions] = useState<Version[]>([])
+  const [activeVersionId, setActiveVersionId] = useState<string>()
+  const [isLoading, setIsLoading] = useState(false)
+  const [isComparing, setIsComparing] = useState(false)
+  const [compareVersions, setCompareVersions] = useState<VersionComparison>()
+  const { toast } = useToast()
+
+  const fetchVersions = useCallback(async () => {
+    setIsLoading(true)
+    try {
+      const response = await fetch(`/api/v1/prompts/${promptId}/versions`)
+      if (!response.ok) throw new Error("Failed to fetch versions")
+      const data = await response.json()
+      setVersions(data)
+      const activeVersion = data.find((v: Version) => v.isActive)
+      if (activeVersion) {
+        setActiveVersionId(activeVersion.id)
+      }
+    } catch (error) {
+      console.error("Error fetching versions:", error)
+      toast({
+        title: "Error",
+        description: "Failed to fetch versions. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }, [promptId, toast])
+
+  const createVersion = useCallback(async (data: {
+    content: string
+    description?: string | null
+    model: string
+    metrics?: Record<string, number>
+  }) => {
+    try {
+      const response = await fetch(`/api/v1/prompts/${promptId}/versions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      })
+      if (!response.ok) throw new Error("Failed to create version")
+      const version = await response.json()
+      setVersions((prev) => [...prev, version])
+      toast({
+        title: "Success",
+        description: "Version created successfully.",
+      })
+      return version
+    } catch (error) {
+      console.error("Error creating version:", error)
+      toast({
+        title: "Error",
+        description: "Failed to create version. Please try again.",
+        variant: "destructive",
+      })
+      throw error
+    }
+  }, [promptId, toast])
+
+  const updateVersion = useCallback(async (versionId: string, data: {
+    content?: string
+    description?: string | null
+    model?: string
+    metrics?: Record<string, number>
+  }) => {
+    try {
+      const response = await fetch(`/api/v1/prompts/${promptId}/versions/${versionId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      })
+      if (!response.ok) throw new Error("Failed to update version")
+      const updatedVersion = await response.json()
+      setVersions((prev) =>
+        prev.map((v) => (v.id === versionId ? updatedVersion : v))
+      )
+      toast({
+        title: "Success",
+        description: "Version updated successfully.",
+      })
+      return updatedVersion
+    } catch (error) {
+      console.error("Error updating version:", error)
+      toast({
+        title: "Error",
+        description: "Failed to update version. Please try again.",
+        variant: "destructive",
+      })
+      throw error
+    }
+  }, [promptId, toast])
+
+  const deleteVersion = useCallback(async (versionId: string) => {
+    try {
+      const response = await fetch(
+        `/api/v1/prompts/${promptId}/versions/${versionId}`,
+        { method: "DELETE" }
+      )
+      if (!response.ok) throw new Error("Failed to delete version")
+      setVersions((prev) => prev.filter((v) => v.id !== versionId))
+      if (activeVersionId === versionId) {
+        setActiveVersionId(undefined)
+      }
+      toast({
+        title: "Success",
+        description: "Version deleted successfully.",
+      })
+    } catch (error) {
+      console.error("Error deleting version:", error)
+      toast({
+        title: "Error",
+        description: "Failed to delete version. Please try again.",
+        variant: "destructive",
+      })
+      throw error
+    }
+  }, [promptId, activeVersionId, toast])
+
+  const activateVersion = useCallback(async (versionId: string) => {
+    try {
+      const response = await fetch(
+        `/api/v1/prompts/${promptId}/versions/${versionId}/activate`,
+        { method: "POST" }
+      )
+      if (!response.ok) throw new Error("Failed to activate version")
+      const activatedVersion = await response.json()
+      setVersions((prev) =>
+        prev.map((v) => ({
+          ...v,
+          isActive: v.id === versionId,
+        }))
+      )
+      setActiveVersionId(versionId)
+      toast({
+        title: "Success",
+        description: "Version activated successfully.",
+      })
+      return activatedVersion
+    } catch (error) {
+      console.error("Error activating version:", error)
+      toast({
+        title: "Error",
+        description: "Failed to activate version. Please try again.",
+        variant: "destructive",
+      })
+      throw error
+    }
+  }, [promptId, toast])
+
+  const compareVersion = useCallback(async (version1Id: string, version2Id: string) => {
+    try {
+      const version1 = versions.find((v) => v.id === version1Id)
+      const version2 = versions.find((v) => v.id === version2Id)
+      if (!version1 || !version2) throw new Error("Version not found")
+
+      setCompareVersions({
+        version1,
+        version2,
+        metrics: {
+          tokenDiff:
+            (version2.metrics?.tokenCount || 0) - (version1.metrics?.tokenCount || 0),
+          costDiff:
+            (version2.metrics?.estimatedCost || 0) - (version1.metrics?.estimatedCost || 0),
+        },
+      })
+      setIsComparing(true)
+    } catch (error) {
+      console.error("Error comparing versions:", error)
+      toast({
+        title: "Error",
+        description: "Failed to compare versions. Please try again.",
+        variant: "destructive",
+      })
+      throw error
+    }
+  }, [versions, toast])
+
+  return {
+    versions,
+    activeVersionId,
+    isLoading,
+    isComparing,
+    compareVersions,
+    fetchVersions,
+    createVersion,
+    updateVersion,
+    deleteVersion,
+    activateVersion,
+    compareVersion,
+    setIsComparing,
+  }
+} 
+```
+
 # src/lib/auth.ts
 
 ```ts
+import { prisma } from "@/lib/prisma"
+import { compare } from "bcryptjs"
 import { NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
-import bcrypt from "bcryptjs"
-import { prisma } from "@/lib/prisma"
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -6374,27 +7966,32 @@ export const authOptions: NextAuthOptions = {
           return null
         }
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
-        })
+        try {
+          const user = await prisma.user.findUnique({
+            where: { email: credentials.email },
+          })
 
-        if (!user || !user.password) {
+          if (!user || !user.password) {
+            return null
+          }
+
+          const isPasswordValid = await compare(
+            credentials.password,
+            user.password
+          )
+
+          if (!isPasswordValid) {
+            return null
+          }
+
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name || "",
+          }
+        } catch (error) {
+          console.error("Auth error:", error)
           return null
-        }
-
-        const isPasswordValid = await bcrypt.compare(
-          credentials.password,
-          user.password
-        )
-
-        if (!isPasswordValid) {
-          return null
-        }
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name || "",
         }
       },
     }),
@@ -6410,7 +8007,7 @@ export const authOptions: NextAuthOptions = {
       return token
     },
     async session({ session, token }) {
-      if (session.user) {
+      if (token && session.user) {
         session.user.id = token.id as string
       }
       return session
@@ -6448,6 +8045,7 @@ if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma
 # src/lib/services/ai.service.ts
 
 ```ts
+import { PromptCategory } from "@prisma/client"
 import OpenAI from "openai"
 
 const openai = new OpenAI({
@@ -6456,25 +8054,43 @@ const openai = new OpenAI({
 
 const PROMPT_CATEGORIES = [
   "Business",
-  "Code Generation",
-  "Content Creation",
-  "Creative Writing",
-  "Data Analysis",
+  "CodeGeneration",
+  "ContentCreation",
+  "CreativeWriting",
+  "CustomerSupport",
+  "DataAnalysis",
   "Debugging",
+  "Design",
   "Documentation",
   "Education",
+  "Entertainment",
+  "EthicsAndPhilosophy",
   "General",
-  "Question Answering",
+  "KnowledgeManagement",
+  "Legal",
+  "Marketing",
+  "MediaProduction",
+  "NetworkingAndOutreach",
+  "Optimization",
+  "PersonalDevelopment",
+  "Presentation",
+  "Productivity",
+  "ProjectManagement",
+  "QuestionAnswering",
   "Research",
   "Roleplay",
+  "Sales",
+  "ScienceExploration",
+  "SocialMedia",
   "Summarization",
-  "System Design",
-  "Task Planning",
+  "SystemDesign",
+  "TaskPlanning",
   "Testing",
   "Translation",
+  "UserInterfaceDesign",
+  "UXResearch",
+  "Visualization",
 ] as const
-
-export type PromptCategory = (typeof PROMPT_CATEGORIES)[number]
 
 interface AIAnalysis {
   category: PromptCategory
@@ -6496,35 +8112,36 @@ export class AIService {
         messages: [
           {
             role: "system",
-            content: `You are an AI assistant that analyzes prompts and provides structured information about them.
-              Available categories: ${PROMPT_CATEGORIES.join(", ")}
-              
-              Rules for analysis:
-              1. Choose exactly ONE category from the available list
-              2. Generate 3-5 relevant tags
-              3. Tags should be single words or short phrases
-              4. Tags should cover key aspects, use cases, and techniques
-              5. Suggest a clear, concise name
-              6. Provide a brief but informative description`,
+            content: `You are an advanced AI assistant specializing in prompt analysis. Your task is to analyze prompts, infer their intent and context, and provide structured metadata about them.
+      
+            Available categories: ${PROMPT_CATEGORIES.join(", ")}
+
+            Your analysis should follow these rules:
+            1. **Category Selection**: Choose exactly ONE category from the available list that best aligns with the primary purpose of the prompt. Use the exact category name.
+            2. **Tag Generation**: Generate 3-5 concise, relevant tags that highlight key aspects, use cases, or techniques of the prompt. Tags must be single words or short phrases.
+            3. **Name Suggestion**: Suggest a clear and concise name for the prompt that reflects its purpose or goal.
+            4. **Description Creation**: Provide a brief but informative description that explains the intent, use case, and expected output of the prompt.
+            5. **Contextual Enrichment**: Use reasoning to infer implicit goals or missing details if the prompt lacks clarity, and include them in your analysis where applicable.
+            6. **Consistency**: Ensure your analysis is concise, precise, and uses consistent terminology aligned with the categories and tags.`,
           },
           {
             role: "user",
             content: `Analyze this prompt and provide:
-              1. Category (choose one): ${PROMPT_CATEGORIES.join(", ")}
-              2. Tags (3-5 relevant tags)
-              3. Suggested name
-              4. Brief description
-              
-              Prompt: ${content}
-              
-              Respond in this exact format:
-              Category: [category]
-              Tags: [tag1], [tag2], [tag3]
-              Name: [name]
-              Description: [description]`,
+            1. Category (choose one): ${PROMPT_CATEGORIES.join(", ")}
+            2. Tags (3-5 relevant tags)
+            3. Suggested name
+            4. Brief description
+            
+            Prompt: ${content}
+            
+            Respond in this exact format:
+            Category: [category]
+            Tags: [tag1], [tag2], [tag3], [tag4], [tag5]
+            Name: [name]
+            Description: [description]`,
           },
         ],
-        temperature: 0.3, // Lower temperature for more consistent categorization
+        temperature: 0.3,
       })
 
       const analysis = response.choices[0]?.message?.content
@@ -6532,22 +8149,32 @@ export class AIService {
 
       // Parse the analysis into structured data
       const lines = analysis.split("\n")
-      const category =
-        (lines
-          .find((l) => l.startsWith("Category:"))
-          ?.split(":")[1]
-          ?.trim() as PromptCategory) || "General"
+
+      // Extract and validate category
+      const categoryLine = lines.find((l) => l.startsWith("Category:"))
+      const categoryText = categoryLine?.split(":")[1]?.trim()
+      const category = PROMPT_CATEGORIES.includes(
+        categoryText as PromptCategory
+      )
+        ? (categoryText as PromptCategory)
+        : "General"
+
+      // Extract and clean tags
+      const tagsLine = lines.find((l) => l.startsWith("Tags:"))
       const tags =
-        lines
-          .find((l) => l.startsWith("Tags:"))
+        tagsLine
           ?.split(":")[1]
           ?.split(",")
-          .map((t) => t.trim()) || []
+          .map((t) => t.trim())
+          .filter(Boolean) || []
+
+      // Extract name and description
       const name =
         lines
           .find((l) => l.startsWith("Name:"))
           ?.split(":")[1]
           ?.trim() || "Untitled Prompt"
+
       const description =
         lines
           .find((l) => l.startsWith("Description:"))
@@ -6566,73 +8193,44 @@ export class AIService {
     }
   }
 
-  static async suggestImprovements(
-    content: string,
-    model: string = "gpt-4o"
-  ): Promise<string> {
-    try {
-      const response = await openai.chat.completions.create({
-        model,
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are an AI assistant that optimizes prompts for better results. Return ONLY the optimized prompt without any explanations.",
-          },
-          {
-            role: "user",
-            content: `Optimize this prompt by:
-              1. Improving clarity and specificity
-              2. Adding necessary context and constraints
-              3. Specifying desired output format
-              4. Adding error handling instructions
-              5. Making it more concise and effective
-              
-              Original Prompt: ${content}
-              
-              Return ONLY the optimized prompt, no explanations.`,
-          },
-        ],
-        temperature: 0.7,
-      })
+  static async suggestImprovements(content: string): Promise<string> {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4-turbo-preview",
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are an expert at analyzing and improving AI prompts. Provide specific, actionable suggestions to improve the prompt's effectiveness, clarity, and reliability.",
+        },
+        {
+          role: "user",
+          content: `Please analyze this prompt and suggest improvements:\n\n${content}`,
+        },
+      ],
+      temperature: 0.7,
+    })
 
-      const optimizedContent = response.choices[0]?.message?.content
-      if (!optimizedContent) throw new Error("No optimization generated")
-      return optimizedContent
-    } catch (error) {
-      console.error("Error suggesting improvements:", error)
-      throw new Error("Failed to optimize prompt")
-    }
+    return response.choices[0]?.message?.content || "No suggestions available."
   }
 
   static async generateTestCases(content: string): Promise<string> {
-    try {
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are an AI assistant that generates test cases for prompts.",
-          },
-          {
-            role: "user",
-            content: `Generate test cases for this prompt, including:
-              1. Happy path scenarios
-              2. Edge cases
-              3. Error cases
-              4. Expected outputs
-              
-              Prompt: ${content}`,
-          },
-        ],
-      })
+    const response = await openai.chat.completions.create({
+      model: "gpt-4-turbo-preview",
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are an expert at creating test cases for AI prompts. Generate diverse test cases that cover different scenarios, edge cases, and potential failure modes.",
+        },
+        {
+          role: "user",
+          content: `Please generate test cases for this prompt:\n\n${content}`,
+        },
+      ],
+      temperature: 0.7,
+    })
 
-      return response.choices[0]?.message?.content || "No test cases generated"
-    } catch (error) {
-      console.error("Error generating test cases:", error)
-      throw new Error("Failed to generate test cases")
-    }
+    return response.choices[0]?.message?.content || "No test cases available."
   }
 
   static async getSuggestions(context: string): Promise<Suggestion[]> {
@@ -6891,6 +8489,7 @@ export class AuthService {
 
 ```ts
 import { prisma } from "@/lib/prisma"
+import { PromptCategory } from "@prisma/client"
 import { AIService } from "./ai.service"
 
 interface ImportedPrompt {
@@ -6899,7 +8498,7 @@ interface ImportedPrompt {
   description?: string
   model?: string
   tags?: string[]
-  category?: string
+  category?: PromptCategory
 }
 
 export class ImportService {
@@ -6933,7 +8532,10 @@ export class ImportService {
         description: typeof item === "object" ? item.description : undefined,
         model: typeof item === "object" ? item.model : undefined,
         tags: typeof item === "object" ? item.tags : undefined,
-        category: typeof item === "object" ? item.category : undefined,
+        category:
+          typeof item === "object"
+            ? (item.category as PromptCategory)
+            : undefined,
       }))
     }
     throw new Error("Invalid JSON format")
@@ -6977,7 +8579,7 @@ export class ImportService {
             prompt.tags = value.split(";").map((t) => t.trim())
             break
           case "category":
-            prompt.category = value
+            prompt.category = value as PromptCategory
             break
         }
       })
@@ -7023,8 +8625,9 @@ export class ImportService {
                 description: prompt.description || analysis.description || "",
                 model: prompt.model || "gpt-4o",
                 tags: prompt.tags || analysis.tags || [],
-                category:
-                  prompt.category || analysis.category || "Uncategorized",
+                category: (prompt.category ||
+                  analysis.category ||
+                  "General") as PromptCategory,
                 userId,
               },
             })
@@ -7061,9 +8664,8 @@ export class ImportService {
 
 ```ts
 import { prisma } from "@/lib/prisma"
-import { AIService } from "@/lib/services/ai.service"
-import { Prompt, LLMModel } from "@/types/prompt"
-import { Prisma } from "@prisma/client"
+import { LLMModel } from "@/types/prompt"
+import { Prisma, PromptCategory } from "@prisma/client"
 
 export interface ListPromptsOptions {
   category?: string
@@ -7071,6 +8673,7 @@ export interface ListPromptsOptions {
   search?: string
   page?: number
   limit?: number
+  excludeId?: string
 }
 
 export class PromptService {
@@ -7080,13 +8683,26 @@ export class PromptService {
     description?: string | null
     model: LLMModel
     tags: string[]
-    category?: string | null
+    category?: PromptCategory | null
     userId: string
     teamId?: string | null
   }) {
+    // Verify user exists first
+    const user = await prisma.user.findUnique({
+      where: { id: data.userId },
+    })
+
+    if (!user) {
+      throw new Error(`User not found with ID: ${data.userId}`)
+    }
+
+    const { category, ...restData } = data
+
     const prompt = await prisma.prompt.create({
       data: {
-        ...data,
+        ...restData,
+        // Convert null to undefined for category
+        ...(category && { category }),
         versions: {
           create: {
             content: data.content,
@@ -7165,7 +8781,7 @@ export class PromptService {
   }
 
   static async listPrompts(userId: string, options: ListPromptsOptions = {}) {
-    const { category, tag, search, page = 1, limit = 10 } = options
+    const { category, tag, search, page = 1, limit = 10, excludeId } = options
     const skip = (page - 1) * limit
 
     const baseWhere: Prisma.PromptWhereInput = {
@@ -7184,11 +8800,15 @@ export class PromptService {
     }
 
     if (category) {
-      baseWhere.category = category
+      baseWhere.category = category as PromptCategory
     }
 
     if (tag) {
       baseWhere.tags = { has: tag }
+    }
+
+    if (excludeId) {
+      baseWhere.id = { not: excludeId }
     }
 
     if (search) {
@@ -7260,11 +8880,13 @@ export class PromptService {
       description?: string | null
       model?: LLMModel
       tags?: string[]
-      category?: string | null
+      category?: PromptCategory | null
       teamId?: string | null
     }
   ) {
-    const prompt = await prisma.prompt.findFirst({
+    const { category, teamId, ...restData } = data
+
+    const existingPrompt = await prisma.prompt.findFirst({
       where: {
         id,
         OR: [
@@ -7282,20 +8904,22 @@ export class PromptService {
       },
     })
 
-    if (!prompt) {
+    if (!existingPrompt) {
       throw new Error("Prompt not found")
     }
 
     const updatedPrompt = await prisma.prompt.update({
       where: { id },
       data: {
-        ...data,
+        ...restData,
+        ...(category && { category }),
+        ...(teamId && { teamId }),
         ...(data.content && {
           versions: {
             create: {
               content: data.content,
               description: data.description,
-              model: data.model || prompt.model,
+              model: data.model || existingPrompt.model,
             },
           },
         }),
@@ -7347,7 +8971,7 @@ export class PromptService {
 
 ```ts
 import { prisma } from "@/lib/prisma"
-import { Prisma } from "@prisma/client"
+import { Prisma, PromptCategory } from "@prisma/client"
 import OpenAI from "openai"
 
 const openai = new OpenAI({
@@ -7415,7 +9039,7 @@ export class SearchService {
           whereClause.tags = { hasEvery: filters.tags }
         }
         if (filters.category) {
-          whereClause.category = filters.category
+          whereClause.category = filters.category as PromptCategory
         }
         if (filters.model) {
           whereClause.model = filters.model
@@ -7534,7 +9158,7 @@ export class SearchService {
           whereClause.tags = { hasEvery: filters.tags }
         }
         if (filters.category) {
-          whereClause.category = filters.category
+          whereClause.category = filters.category as PromptCategory
         }
         if (filters.model) {
           whereClause.model = filters.model
@@ -7771,6 +9395,177 @@ export class UserService {
 
 ```
 
+# src/lib/services/version.service.ts
+
+```ts
+import { prisma } from "@/lib/prisma"
+import { CreateVersionMetrics, Version } from "@/types/version"
+import { Prisma, VersionType } from "@prisma/client"
+
+interface CreateVersionParams {
+  promptId: string
+  content: string
+  description?: string
+  model: string
+  type: VersionType
+  metrics?: CreateVersionMetrics
+}
+
+interface UpdateVersionParams {
+  id: string
+  content?: string
+  description?: string | null
+  model?: string
+  metrics?: CreateVersionMetrics
+}
+
+export class VersionService {
+  static async createVersion(params: CreateVersionParams) {
+    const { promptId, content, description, model, type, metrics } = params
+
+    // Deactivate all other versions if this is being set as active
+    if (type === "original") {
+      await prisma.version.updateMany({
+        where: { promptId },
+        data: { isActive: false },
+      })
+    }
+
+    // Create the new version
+    const version = await prisma.version.create({
+      data: {
+        content,
+        description,
+        model,
+        type,
+        metrics: metrics ? (metrics as Prisma.InputJsonValue) : Prisma.JsonNull,
+        promptId,
+        isActive: type === "original",
+      },
+    })
+
+    return this.mapVersion(version)
+  }
+
+  static async updateVersion(params: UpdateVersionParams) {
+    const { id, content, description, model, metrics } = params
+
+    const version = await prisma.version.update({
+      where: { id },
+      data: {
+        content,
+        description,
+        model,
+        metrics: metrics ? (metrics as Prisma.InputJsonValue) : undefined,
+      },
+    })
+
+    return this.mapVersion(version)
+  }
+
+  static async getVersions(promptId: string) {
+    const versions = await prisma.version.findMany({
+      where: { promptId },
+      orderBy: { createdAt: "desc" },
+    })
+
+    return versions.map(this.mapVersion)
+  }
+
+  static async getActiveVersion(promptId: string) {
+    const version = await prisma.version.findFirst({
+      where: { promptId, isActive: true },
+    })
+
+    return version ? this.mapVersion(version) : null
+  }
+
+  static async setActiveVersion(versionId: string) {
+    const version = await prisma.version.findUnique({
+      where: { id: versionId },
+      include: { prompt: true },
+    })
+
+    if (!version) {
+      throw new Error("Version not found")
+    }
+
+    // Deactivate all versions for this prompt
+    await prisma.version.updateMany({
+      where: { promptId: version.promptId },
+      data: { isActive: false },
+    })
+
+    // Activate the selected version
+    const updatedVersion = await prisma.version.update({
+      where: { id: versionId },
+      data: { isActive: true },
+    })
+
+    return this.mapVersion(updatedVersion)
+  }
+
+  static async compareVersions(versionId1: string, versionId2: string) {
+    const [version1, version2] = await Promise.all([
+      prisma.version.findUnique({ where: { id: versionId1 } }),
+      prisma.version.findUnique({ where: { id: versionId2 } }),
+    ])
+
+    if (!version1 || !version2) {
+      throw new Error("One or both versions not found")
+    }
+
+    const v1 = this.mapVersion(version1)
+    const v2 = this.mapVersion(version2)
+
+    return {
+      version1: v1,
+      version2: v2,
+      metrics: {
+        tokenDiff:
+          (v2.metrics?.tokenCount || 0) - (v1.metrics?.tokenCount || 0),
+        costDiff:
+          (v2.metrics?.estimatedCost || 0) - (v1.metrics?.estimatedCost || 0),
+      },
+    }
+  }
+
+  static async deleteVersion(id: string) {
+    const version = await prisma.version.delete({
+      where: { id },
+    })
+
+    return this.mapVersion(version)
+  }
+
+  private static mapVersion(
+    version: Prisma.VersionGetPayload<Record<string, never>>
+  ): Version {
+    const metrics = version.metrics as Record<string, number> | null
+    return {
+      id: version.id,
+      content: version.content,
+      description: version.description,
+      model: version.model,
+      type: version.type,
+      metrics: metrics
+        ? {
+            tokenCount: metrics.tokenCount,
+            estimatedCost: metrics.estimatedCost,
+            responseTime: metrics.responseTime,
+            successRate: metrics.successRate,
+            ...metrics,
+          }
+        : null,
+      createdAt: new Date(version.createdAt),
+      promptId: version.promptId,
+      isActive: version.isActive,
+    }
+  }
+}
+
+```
+
 # src/lib/utils.ts
 
 ```ts
@@ -7779,6 +9574,16 @@ import { twMerge } from "tailwind-merge"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
+}
+
+export function formatDate(dateString: string | Date) {
+  const date = new Date(dateString)
+  const year = date.getFullYear()
+  const month = new Intl.DateTimeFormat("en-US", { month: "short" }).format(
+    date
+  )
+  const day = date.getDate()
+  return `${month} ${day}, ${year}`
 }
 
 ```
@@ -7856,7 +9661,15 @@ declare module "next-auth/jwt" {
 # src/types/prompt.ts
 
 ```ts
-export type LLMModel = "gpt-4o" | "claude-3-5-sonnet-20241022"
+export type LLMModel = 
+  | "gpt-4o"
+  | "gpt-4-turbo"
+  | "gpt-3.5-turbo"
+  | "claude-3-opus"
+  | "claude-3-sonnet-20241022"
+  | "gemini-pro"
+  | "mixtral-8x7b"
+  | "llama-2-70b"
 
 export interface Prompt {
   id: string
@@ -7929,7 +9742,7 @@ export interface AIAnalysis {
 
 export interface PromptTest {
   id: string
-  input: Record<string, any>
+  input: Record<string, string>
   output: string
   metrics: PromptTestMetrics
   createdAt: Date
@@ -7942,6 +9755,44 @@ export interface PromptTestMetrics {
   success: boolean
   error: string | null
   cost: number
+}
+
+```
+
+# src/types/version.ts
+
+```ts
+import { VersionType } from "@prisma/client"
+
+export interface VersionMetrics {
+  tokenCount?: number
+  estimatedCost?: number
+  responseTime?: number
+  successRate?: number
+  [key: string]: number | undefined
+}
+
+export interface CreateVersionMetrics extends VersionMetrics {}
+
+export interface Version {
+  id: string
+  content: string
+  description: string | null
+  model: string
+  type: VersionType
+  metrics: VersionMetrics | null
+  createdAt: Date
+  promptId: string
+  isActive: boolean
+}
+
+export interface VersionComparison {
+  version1: Version
+  version2: Version
+  metrics: {
+    tokenDiff: number
+    costDiff: number
+  }
 }
 
 ```

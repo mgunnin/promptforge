@@ -171,4 +171,4 @@ export function AIAnalytics({ promptId, content }: AIAnalyticsProps) {
             </Card>
         </>
     )
-} 
+}
