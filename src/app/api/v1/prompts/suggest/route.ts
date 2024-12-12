@@ -1,29 +1,24 @@
+import { authOptions } from "@/lib/auth"
 import { AIService } from "@/lib/services/ai.service"
-import { getToken } from "next-auth/jwt"
-import { NextRequest, NextResponse } from "next/server"
+import { getServerSession } from "next-auth"
+import { NextResponse } from "next/server"
 
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   try {
-    const token = await getToken({ req })
-    if (!token?.id) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id) {
+      return new NextResponse("Unauthorized", { status: 401 })
     }
 
-    const { content } = await req.json()
+    const { promptId, content } = await req.json()
     if (!content) {
-      return NextResponse.json(
-        { message: "Content is required" },
-        { status: 400 }
-      )
+      return new NextResponse("Content is required", { status: 400 })
     }
 
     const suggestions = await AIService.suggestImprovements(content)
     return NextResponse.json({ suggestions })
   } catch (error) {
-    console.error("Error getting suggestions:", error)
-    return NextResponse.json(
-      { message: "Failed to get suggestions" },
-      { status: 500 }
-    )
+    console.error("[PROMPT_SUGGESTIONS]", error)
+    return new NextResponse("Internal error", { status: 500 })
   }
 }

@@ -116,7 +116,7 @@ export class PromptService {
   }
 
   static async listPrompts(userId: string, options: ListPromptsOptions = {}) {
-    const { category, tag, search, page = 1, limit = 10 } = options
+    const { category, tag, search, page = 1, limit = 10, excludeId } = options
     const skip = (page - 1) * limit
 
     const baseWhere: Prisma.PromptWhereInput = {
@@ -140,6 +140,10 @@ export class PromptService {
 
     if (tag) {
       baseWhere.tags = { has: tag }
+    }
+
+    if (excludeId) {
+      baseWhere.id = { not: excludeId }
     }
 
     if (search) {

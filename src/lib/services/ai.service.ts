@@ -146,82 +146,44 @@ export class AIService {
     }
   }
 
-  static async suggestImprovements(
-    content: string,
-    model: string = "gpt-4o"
-  ): Promise<string> {
-    try {
-      const response = await openai.chat.completions.create({
-        model,
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are the most advanced AI assistant specialized in optimizing prompts for exceptional results. Your optimizations must leverage deep reasoning, contextual understanding, and advanced analysis. Your goal is to ensure the prompt is not only clear and specific but also highly effective, actionable, and aligned with its intended purpose.",
-          },
-          {
-            role: "system",
-            content: `Rules for optimization: \n\
-            1. **Deep Analysis**: Analyze the intent and context of the prompt to infer implicit goals or missing details.\n\
-            2. **Clarity and Specificity**: Rewrite the prompt to be clear, precise, and unambiguous while ensuring it remains concise.\n\
-            3. **Context and Constraints**: Add any necessary background, contextual details, or constraints to guide the response generation effectively.\n\
-            4. **Desired Output**: Clearly specify the desired format, structure, or style of the output.\n\
-            5. **Error Handling**: Incorporate error handling instructions to account for ambiguities, incomplete data, or failure scenarios.\n\
-            6. **Iterative Refinement**: Continuously refine phrasing to remove redundancies, improve flow, and enhance usability.\n\
-            7. **Dynamic Adaptability**: Adjust the optimization style to the complexity, tone, or domain of the original prompt, ensuring alignment with the user's goals.`,
-          },
-          {
-            role: "user",
-            content: `Optimize this prompt: \n\
-            Original Prompt: ${content}\n\n\
-            Your task is to:\n\
-            1. Enhance clarity and specificity.\n\
-            2. Add necessary context, background, and constraints.\n\
-            3. Define the desired output format, including structure and style.\n\
-            4. Provide error-handling instructions if relevant.\n\n\
-            Return ONLY the optimized prompt. The optimized prompt must be clear, actionable, and better than the original in every way.`,
-          },
-        ],
-        temperature: 0.7,
-      })
+  static async suggestImprovements(content: string): Promise<string> {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4-turbo-preview",
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are an expert at analyzing and improving AI prompts. Provide specific, actionable suggestions to improve the prompt's effectiveness, clarity, and reliability.",
+        },
+        {
+          role: "user",
+          content: `Please analyze this prompt and suggest improvements:\n\n${content}`,
+        },
+      ],
+      temperature: 0.7,
+    })
 
-      const optimizedContent = response.choices[0]?.message?.content
-      if (!optimizedContent) throw new Error("No optimization generated")
-      return optimizedContent
-    } catch (error) {
-      console.error("Error suggesting improvements:", error)
-      throw new Error("Failed to optimize prompt")
-    }
+    return response.choices[0]?.message?.content || "No suggestions available."
   }
 
   static async generateTestCases(content: string): Promise<string> {
-    try {
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are an AI assistant that generates test cases for prompts.",
-          },
-          {
-            role: "user",
-            content: `Generate test cases for this prompt, including:
-              1. Happy path scenarios
-              2. Edge cases
-              3. Error cases
-              4. Expected outputs
-              
-              Prompt: ${content}`,
-          },
-        ],
-      })
+    const response = await openai.chat.completions.create({
+      model: "gpt-4-turbo-preview",
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are an expert at creating test cases for AI prompts. Generate diverse test cases that cover different scenarios, edge cases, and potential failure modes.",
+        },
+        {
+          role: "user",
+          content: `Please generate test cases for this prompt:\n\n${content}`,
+        },
+      ],
+      temperature: 0.7,
+    })
 
-      return response.choices[0]?.message?.content || "No test cases generated"
-    } catch (error) {
-      console.error("Error generating test cases:", error)
-      throw new Error("Failed to generate test cases")
-    }
+    return response.choices[0]?.message?.content || "No test cases available."
   }
 
   static async getSuggestions(context: string): Promise<Suggestion[]> {

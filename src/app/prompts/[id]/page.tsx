@@ -1,10 +1,10 @@
+import { AIAnalytics } from "@/components/ai-analytics"
 import { PromptTester } from "@/components/prompt-tester"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { authOptions } from "@/lib/auth"
-import { AIService } from "@/lib/services/ai.service"
 import { PromptService } from "@/lib/services/prompt.service"
 import { formatDate } from "@/lib/utils"
 import { GitFork, Heart, History, MessageSquare, Share2, Star, Zap } from "lucide-react"
@@ -77,13 +77,11 @@ export default async function PromptDetailPage({ params }: PromptDetailPageProps
         redirect("/login")
     }
 
-    const rawPrompt = await PromptService.getPromptById(await params.id, session.user.id) as unknown as DatabasePrompt
+    const rawPrompt = await PromptService.getPromptById(params.id, session.user.id) as unknown as DatabasePrompt
     const prompt = {
         ...rawPrompt,
         metrics: parseMetrics(rawPrompt.metrics),
     }
-    const suggestions = await AIService.suggestImprovements(prompt.content)
-    const testCases = await AIService.generateTestCases(prompt.content)
 
     // Extract variables from prompt content
     const variableRegex = /{{([^}]+)}}/g
@@ -339,35 +337,8 @@ export default async function PromptDetailPage({ params }: PromptDetailPageProps
                         </CardContent>
                     </Card>
 
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>AI Suggestions</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="prose prose-sm dark:prose-invert">
-                                <div
-                                    dangerouslySetInnerHTML={{
-                                        __html: suggestions.replace(/\n/g, "<br />"),
-                                    }}
-                                />
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Test Cases</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="prose prose-sm dark:prose-invert">
-                                <div
-                                    dangerouslySetInnerHTML={{
-                                        __html: testCases.replace(/\n/g, "<br />"),
-                                    }}
-                                />
-                            </div>
-                        </CardContent>
-                    </Card>
+                    {/* AI Analytics Component */}
+                    <AIAnalytics promptId={prompt.id} content={prompt.content} />
 
                     {relatedPrompts.prompts.length > 0 && (
                         <Card>

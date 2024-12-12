@@ -6,9 +6,11 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatDate(dateString: string | Date) {
-  return new Date(dateString).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  })
+  const date = new Date(dateString)
+  const year = date.getFullYear()
+  const month = new Intl.DateTimeFormat("en-US", { month: "short" }).format(
+    date
+  )
+  const day = date.getDate()
+  return `${month} ${day}, ${year}`
 }

@@ -1,38 +1,141 @@
-# Promptforge
+# PromptForge
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+PromptForge is a modern prompt management application built for AI development. It provides a robust platform for creating, testing, and managing prompts with advanced features for collaboration and version control.
+
+## Features
+
+### Core Functionality
+
+- 🔄 Prompt version control
+- 🧪 Interactive prompt testing environment
+- 📊 Performance metrics and analytics
+- 🤝 Team collaboration support
+- 🔑 API key management
+- 🌓 Dark/light mode theming
+- 📱 Responsive design
+
+### Prompt Management
+
+- Create and edit prompts with rich text support
+- Import prompts from JSON, CSV, or TXT files
+- Variable detection and management
+- Test prompts with different models and parameters
+- Track metrics including response time, token usage, and success rate
+
+### Collaboration
+
+- Team-based prompt sharing
+- Role-based access control
+- Version history tracking
+- Collaborative editing features
+
+### Security
+
+- JWT-based authentication
+- Secure API key rotation
+- Password hashing with bcrypt
+- Protected routes with middleware
+- Secure database access
+
+## Tech Stack
+
+- **Framework**: Next.js 14 with TypeScript
+- **Styling**: Tailwind CSS with shadcn/ui components
+- **Database**: PostgreSQL with Prisma ORM
+- **Authentication**: NextAuth.js
+- **API Integration**: OpenAI API support
+- **State Management**: React Context API
+- **Testing**: Built-in test environment
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 18.x or higher
+- PostgreSQL database
+- OpenAI API key
+- Bun package manager
+
+### Installation
+
+1. Clone the repository:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
+git clone https://github.com/mgunnin/vl-promptforge.git
+cd vl-promptforge
+```
+
+2. Install dependencies:
+
+```bash
+bun i
+```
+
+3. Set up environment variables:
+
+```bash
+cp .env.example .env.local
+```
+
+4. Update the `.env.local` file with your database and API key details.
+
+DATABASE_URL="postgresql://user:password@localhost:5432/promptforge"
+NEXTAUTH_SECRET="your-secret-key"
+OPENAI_API_KEY="your-openai-api-key"
+
+5. Run the development server:
+
+```bash
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Visit `http://localhost:3000` to see the application.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Project Structure
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```plaintext
+src/
+├── app/ # Next.js 14 app directory
+│ ├── api/ # API routes
+│ ├── auth/ # Authentication pages
+│ ├── prompts/ # Prompt management pages
+│ └── test/ # Prompt testing environment
+├── components/ # Reusable UI components
+├── contexts/ # React contexts
+├── lib/ # Utility functions and services
+│ ├── services/ # Core service classes
+│ └── utils/ # Helper functions
+├── prisma/ # Database schema and migrations
+│ └── types/ # TypeScript type definitions
+├── public/ # Public assets
+├── styles/ # Global styles
+├── types/ # TypeScript type definitions
+├── utils/ # Utility functions
+└── .env.local # Local environment variables
+```
 
-## Learn More
+## Core Services
 
-To learn more about Next.js, take a look at the following resources:
+- **AIService**: Handles LLM provider interactions
+- **AuthService**: Manages authentication and API keys
+- **PromptService**: Handles prompt operations
+- **UserService**: Manages user-related functionality
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Contributing
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-## Deploy on Vercel
+## License
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Acknowledgments
+
+- Built with [Next.js](https://nextjs.org/)
+- UI components from [shadcn/ui](https://ui.shadcn.com/)
+- Database ORM by [Prisma](https://www.prisma.io/)
+- Authentication by [NextAuth.js](https://next-auth.js.org/)
