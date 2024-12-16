@@ -43,23 +43,23 @@ model Team {
 }
 
 enum PromptCategory {
-  General
+  Business
   CodeGeneration
   ContentCreation
-  DataAnalysis
-  Translation
-  Summarization
-  QuestionAnswering
-  TaskPlanning
-  Roleplay
-  SystemDesign
-  Debugging
-  Testing
-  Documentation
   CreativeWriting
-  Business
+  DataAnalysis
+  Debugging
+  Documentation
   Education
+  General
+  QuestionAnswering
   Research
+  Roleplay
+  Summarization
+  SystemDesign
+  TaskPlanning
+  Testing
+  Translation
 }
 
 enum VersionType {

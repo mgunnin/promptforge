@@ -17,8 +17,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/use-toast"
 import { PromptCategory, Version } from "@prisma/client"
 import { X } from "lucide-react"
-import { useState } from "react"
 import { useSession } from "next-auth/react"
+import { useState } from "react"
 
 const AVAILABLE_MODELS = [
     { id: "gpt-4o", name: "GPT-4o" },
@@ -32,23 +32,23 @@ const AVAILABLE_MODELS = [
 ] as const
 
 const PROMPT_CATEGORIES = [
-    { id: "General", name: "General" },
+    { id: "Business", name: "Business" },
     { id: "CodeGeneration", name: "Code Generation" },
     { id: "ContentCreation", name: "Content Creation" },
-    { id: "DataAnalysis", name: "Data Analysis" },
-    { id: "Translation", name: "Translation" },
-    { id: "Summarization", name: "Summarization" },
-    { id: "QuestionAnswering", name: "Question Answering" },
-    { id: "TaskPlanning", name: "Task Planning" },
-    { id: "Roleplay", name: "Roleplay" },
-    { id: "SystemDesign", name: "System Design" },
-    { id: "Debugging", name: "Debugging" },
-    { id: "Testing", name: "Testing" },
-    { id: "Documentation", name: "Documentation" },
     { id: "CreativeWriting", name: "Creative Writing" },
-    { id: "Business", name: "Business" },
+    { id: "DataAnalysis", name: "Data Analysis" },
+    { id: "Debugging", name: "Debugging" },
+    { id: "Documentation", name: "Documentation" },
     { id: "Education", name: "Education" },
+    { id: "General", name: "General" },
+    { id: "QuestionAnswering", name: "Question Answering" },
     { id: "Research", name: "Research" },
+    { id: "Roleplay", name: "Roleplay" },
+    { id: "Summarization", name: "Summarization" },
+    { id: "SystemDesign", name: "System Design" },
+    { id: "TaskPlanning", name: "Task Planning" },
+    { id: "Testing", name: "Testing" },
+    { id: "Translation", name: "Translation" },
 ] as const
 
 export default function NewPromptPage() {
