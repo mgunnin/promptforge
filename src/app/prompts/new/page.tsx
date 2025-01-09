@@ -18,6 +18,7 @@ import { useToast } from "@/components/ui/use-toast"
 import { PromptCategory, Version } from "@prisma/client"
 import { X } from "lucide-react"
 import { useSession } from "next-auth/react"
+import { useRouter } from "next/navigation"
 import { useState } from "react"
 
 const AVAILABLE_MODELS = [
@@ -53,6 +54,7 @@ const PROMPT_CATEGORIES = [
 
 export default function NewPromptPage() {
     const { data: session } = useSession()
+    const router = useRouter()
     const [content, setContent] = useState("")
     const [name, setName] = useState("")
     const [description, setDescription] = useState("")
@@ -261,6 +263,9 @@ export default function NewPromptPage() {
                 title: "Prompt Saved",
                 description: "Your prompt has been saved successfully.",
             })
+
+            // Navigate back to prompts page after successful save
+            router.push("/prompts")
         } catch (error) {
             console.error("Error saving prompt:", error)
             toast({

@@ -147,7 +147,7 @@ export default async function PromptsPage() {
                                     </p>
                                 </div>
                                 <Link href={`/prompts/${prompt.id}`}>
-                                    <Button variant="outline" size="sm">
+                                    <Button variant="outline" size="sm" className="whitespace-nowrap">
                                         View Details
                                     </Button>
                                 </Link>
