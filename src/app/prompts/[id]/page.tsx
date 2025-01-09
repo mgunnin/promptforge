@@ -71,13 +71,18 @@ function parseMetrics(metricsJson: JsonValue): PromptMetrics {
     }
 }
 
-export default async function PromptDetailPage({ params }: PromptDetailPageProps) {
+export default async function PromptDetailPage({
+    params,
+}: {
+    params: { id: string }
+}) {
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
         redirect("/login")
     }
 
-    const rawPrompt = await PromptService.getPromptById(params.id, session.user.id) as unknown as DatabasePrompt
+    const id = await Promise.resolve(params.id)
+    const rawPrompt = await PromptService.getPromptById(id, session.user.id) as unknown as DatabasePrompt
     const prompt = {
         ...rawPrompt,
         metrics: parseMetrics(rawPrompt.metrics),
@@ -150,7 +155,9 @@ export default async function PromptDetailPage({ params }: PromptDetailPageProps
                         <Share2 className="h-4 w-4" />
                         Share
                     </Button>
-                    <Button>Edit Prompt</Button>
+                    <Link href={`/prompts/${prompt.id}/edit`}>
+                        <Button>Edit Prompt</Button>
+                    </Link>
                 </div>
             </div>
 
