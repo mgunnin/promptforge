@@ -1,6 +1,6 @@
 import { getToken } from "next-auth/jwt"
 import { NextRequest, NextResponse } from "next/server"
-import OpenAI from "openai"
+import OpenAI from "openai/index.mjs"
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
