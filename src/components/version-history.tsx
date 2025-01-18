@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils"
 import { Version } from "@/types/version"
 import { formatDistanceToNow } from "date-fns"
-import { Check, Clock, GitCompare, Trash } from "lucide-react"
+import { Check, Clock, GitCompare, Trash, RotateCcw } from "lucide-react"
 import { Button } from "./ui/button"
 import { ScrollArea } from "./ui/scroll-area"
 
@@ -14,6 +14,7 @@ interface VersionHistoryProps {
     onVersionCompare: (version1: Version, version2: Version) => void
     onVersionDelete: (version: Version) => void
     onVersionActivate: (version: Version) => void
+    onVersionRevert: (version: Version) => void
     className?: string
 }
 
@@ -24,6 +25,7 @@ export function VersionHistory({
     onVersionCompare,
     onVersionDelete,
     onVersionActivate,
+    onVersionRevert,
     className,
 }: VersionHistoryProps) {
     const sortedVersions = [...versions].sort((a, b) => {
@@ -102,6 +104,16 @@ export function VersionHistory({
                                                 >
                                                     <Trash className="h-4 w-4" />
                                                 </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        onVersionRevert(version)
+                                                    }}
+                                                >
+                                                    <RotateCcw className="h-4 w-4" />
+                                                </Button>
                                             </>
                                         )}
                                     </div>
@@ -123,4 +135,4 @@ export function VersionHistory({
             </ScrollArea>
         </div>
     )
-} 
+}

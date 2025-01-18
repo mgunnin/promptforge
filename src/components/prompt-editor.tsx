@@ -240,6 +240,31 @@ export function PromptEditor({
                     {isAnalyzing ? "Analyzing..." : "Analyze"}
                   </Button>
                 )}
+                <div className="flex justify-between mt-4">
+                  <Button
+                    onClick={() => onVersionCompare(versions[0], versions[1])}
+                    className="mr-2"
+                  >
+                    Compare Versions
+                  </Button>
+                  <Button
+                    onClick={() => onVersionActivate(versions[0])}
+                    className="mr-2"
+                  >
+                    Revert to Version
+                  </Button>
+                  <Button
+                    onClick={() => console.log("Fetch Analytics")}
+                    className="mr-2"
+                  >
+                    Fetch Analytics
+                  </Button>
+                  <Button
+                    onClick={() => console.log("Run A/B Test")}
+                  >
+                    Run A/B Test
+                  </Button>
+                </div>
               </div>
             )}
           </CardContent>

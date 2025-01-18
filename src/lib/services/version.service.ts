@@ -138,6 +138,31 @@ export class VersionService {
     return this.mapVersion(version)
   }
 
+  static async revertToVersion(versionId: string) {
+    const version = await prisma.version.findUnique({
+      where: { id: versionId },
+      include: { prompt: true },
+    })
+
+    if (!version) {
+      throw new Error("Version not found")
+    }
+
+    // Deactivate all versions for this prompt
+    await prisma.version.updateMany({
+      where: { promptId: version.promptId },
+      data: { isActive: false },
+    })
+
+    // Activate the selected version
+    const updatedVersion = await prisma.version.update({
+      where: { id: versionId },
+      data: { isActive: true },
+    })
+
+    return this.mapVersion(updatedVersion)
+  }
+
   private static mapVersion(
     version: Prisma.VersionGetPayload<Record<string, never>>
   ): Version {

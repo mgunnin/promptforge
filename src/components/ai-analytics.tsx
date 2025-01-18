@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/components/ui/use-toast"
 import { Loader2, Sparkles, TestTube } from "lucide-react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 
 interface AIAnalyticsProps {
     promptId: string
@@ -16,6 +16,7 @@ export function AIAnalytics({ promptId, content }: AIAnalyticsProps) {
     const [isLoadingTestCases, setIsLoadingTestCases] = useState(false)
     const [suggestions, setSuggestions] = useState<string | null>(null)
     const [testCases, setTestCases] = useState<string | null>(null)
+    const [analytics, setAnalytics] = useState<any | null>(null)
     const { toast } = useToast()
 
     const generateSuggestions = async () => {
@@ -85,6 +86,26 @@ export function AIAnalytics({ promptId, content }: AIAnalyticsProps) {
             setIsLoadingTestCases(false)
         }
     }
+
+    const fetchAnalytics = async () => {
+        try {
+            const response = await fetch(`/api/v1/prompts/${promptId}/analytics`)
+            if (!response.ok) throw new Error("Failed to fetch analytics")
+            const data = await response.json()
+            setAnalytics(data)
+        } catch (error) {
+            console.error("Error fetching analytics:", error)
+            toast({
+                title: "Fetch Failed",
+                description: "Failed to fetch analytics. Please try again.",
+                variant: "destructive",
+            })
+        }
+    }
+
+    useEffect(() => {
+        fetchAnalytics()
+    }, [promptId])
 
     return (
         <>
@@ -165,6 +186,23 @@ export function AIAnalytics({ promptId, content }: AIAnalyticsProps) {
                     ) : (
                         <div className="text-center text-muted-foreground py-8">
                             Click generate to create AI test cases for your prompt.
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Detailed Analytics</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    {analytics ? (
+                        <div className="prose prose-sm dark:prose-invert">
+                            <pre>{JSON.stringify(analytics, null, 2)}</pre>
+                        </div>
+                    ) : (
+                        <div className="text-center text-muted-foreground py-8">
+                            Loading analytics...
                         </div>
                     )}
                 </CardContent>

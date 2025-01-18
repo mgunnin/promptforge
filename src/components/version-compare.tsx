@@ -5,6 +5,7 @@ import { Version } from "@/types/version"
 import { Check, X } from "lucide-react"
 import { Button } from "./ui/button"
 import { ScrollArea } from "./ui/scroll-area"
+import { useEffect, useState } from "react"
 
 interface VersionCompareProps {
     version1: Version
@@ -23,6 +24,35 @@ export function VersionCompare({
 }: VersionCompareProps) {
     const tokenDiff = (version2.metrics?.tokenCount || 0) - (version1.metrics?.tokenCount || 0)
     const costDiff = (version2.metrics?.estimatedCost || 0) - (version1.metrics?.estimatedCost || 0)
+
+    const [comparisonData, setComparisonData] = useState<{
+        version1: Version
+        version2: Version
+        metrics: {
+            tokenDiff: number
+            costDiff: number
+        }
+    } | null>(null)
+
+    useEffect(() => {
+        const fetchComparisonData = async () => {
+            try {
+                const response = await fetch(`/api/v1/prompts/${version1.promptId}/versions/compare`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ versionId1: version1.id, versionId2: version2.id }),
+                })
+
+                if (!response.ok) throw new Error("Failed to fetch comparison data")
+                const data = await response.json()
+                setComparisonData(data)
+            } catch (error) {
+                console.error("Error fetching comparison data:", error)
+            }
+        }
+
+        fetchComparisonData()
+    }, [version1.id, version2.id, version1.promptId])
 
     return (
         <div className={cn("flex flex-col h-full", className)}>
@@ -96,6 +126,15 @@ export function VersionCompare({
                     </ScrollArea>
                 </div>
             </div>
+            {comparisonData && (
+                <div className="p-4 border-t">
+                    <h4 className="text-sm font-medium">Comparison Metrics</h4>
+                    <div className="text-xs text-muted-foreground mt-1">
+                        <div>Token Difference: {comparisonData.metrics.tokenDiff}</div>
+                        <div>Cost Difference: ${comparisonData.metrics.costDiff.toFixed(4)}</div>
+                    </div>
+                </div>
+            )}
         </div>
     )
-} 
+}
