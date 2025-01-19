@@ -25,14 +25,15 @@ export function VersionCompare({
     const tokenDiff = (version2.metrics?.tokenCount || 0) - (version1.metrics?.tokenCount || 0)
     const costDiff = (version2.metrics?.estimatedCost || 0) - (version1.metrics?.estimatedCost || 0)
 
-    const [comparisonData, setComparisonData] = useState<{
+    interface ComparisonData {
         version1: Version
         version2: Version
         metrics: {
             tokenDiff: number
             costDiff: number
         }
-    } | null>(null)
+    }
+    const [comparisonData, setComparisonData] = useState<ComparisonData | null>(null)
 
     useEffect(() => {
         const fetchComparisonData = async () => {

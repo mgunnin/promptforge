@@ -148,16 +148,18 @@ export class VersionService {
       throw new Error("Version not found")
     }
 
-    // Deactivate all versions for this prompt
-    await prisma.version.updateMany({
-      where: { promptId: version.promptId },
-      data: { isActive: false },
-    })
+    const updatedVersion = await prisma.$transaction(async (tx) => {
+      // Deactivate all versions for this prompt
+      await tx.version.updateMany({
+        where: { promptId: version.promptId },
+        data: { isActive: false },
+      })
 
-    // Activate the selected version
-    const updatedVersion = await prisma.version.update({
-      where: { id: versionId },
-      data: { isActive: true },
+      // Activate the selected version
+      return tx.version.update({
+        where: { id: versionId },
+        data: { isActive: true },
+      })
     })
 
     return this.mapVersion(updatedVersion)

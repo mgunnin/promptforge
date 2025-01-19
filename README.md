@@ -45,7 +45,7 @@ Before you begin, ensure you have the following installed:
 
 - Node.js 18.x or higher (we recommend using [nvm](https://github.com/nvm-sh/nvm) for Node.js version management)
 - PostgreSQL 14.x or higher
-- [Bun](https://bun.sh) package manager
+- [pnpm](https://pnpm.io) package manager
 - Git
 
 ### Local Development Environment
@@ -60,7 +60,7 @@ Before you begin, ensure you have the following installed:
 2. **Install Dependencies**
 
    ```bash
-   bun i
+   pnpm install
    ```
 
 3. **Set Up PostgreSQL Database**
@@ -105,14 +105,14 @@ Before you begin, ensure you have the following installed:
 5. **Initialize Database Schema**
 
    ```bash
-   bun prisma generate   # Generate Prisma client
-   bun prisma db push    # Push schema to database
+   pnpm prisma generate   # Generate Prisma client
+   pnpm prisma db push    # Push schema to database
    ```
 
 6. **Run Development Server**
 
    ```bash
-   bun dev
+   pnpm dev
    ```
 
    The application will be available at [http://localhost:3000](http://localhost:3000)
@@ -120,8 +120,8 @@ Before you begin, ensure you have the following installed:
 7. **Run Tests**
 
    ```bash
-   bun test             # Run unit tests
-   bun test:e2e        # Run end-to-end tests
+   pnpm test             # Run unit tests
+   pnpm test:e2e        # Run end-to-end tests
    ```
 
 ## Project Structure
@@ -189,8 +189,8 @@ We welcome contributions! Here's how you can help:
 4. Run tests and linting:
 
    ```bash
-   bun test
-   bun lint
+   pnpm test
+   pnpm lint
    ```
 
 5. Commit your changes:
@@ -263,10 +263,10 @@ We welcome contributions! Here's how you can help:
 
    ```bash
    # Reset database
-   bun prisma migrate reset
+   pnpm prisma migrate reset
    
    # Regenerate client
-   bun prisma generate
+   pnpm prisma generate
    ```
 
 3. **Build Errors**
@@ -277,7 +277,7 @@ We welcome contributions! Here's how you can help:
    
    # Reinstall dependencies
    rm -rf node_modules
-   bun i
+   pnpm install
    ```
 
 ### Getting Help

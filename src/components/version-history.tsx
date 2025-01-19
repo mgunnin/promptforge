@@ -109,7 +109,9 @@ export function VersionHistory({
                                                     size="icon"
                                                     onClick={(e) => {
                                                         e.stopPropagation()
-                                                        onVersionRevert(version)
+                                                        if (window.confirm('Are you sure you want to revert to this version? This action cannot be undone.')) {
+                                                            onVersionRevert(version)
+                                                        }
                                                     }}
                                                 >
                                                     <RotateCcw className="h-4 w-4" />
