@@ -230,4 +230,58 @@ export class AIService {
       return []
     }
   }
+
+  static async fetchAnalytics(promptId: string): Promise<any> {
+    try {
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "system",
+            content: `You are an advanced AI assistant specializing in prompt analytics. Your task is to provide detailed analytics for a given prompt.`,
+          },
+          {
+            role: "user",
+            content: `Provide detailed analytics for the prompt with ID: ${promptId}`,
+          },
+        ],
+        temperature: 0.3,
+      })
+
+      const analytics = response.choices[0]?.message?.content
+      if (!analytics) throw new Error("No analytics generated")
+
+      return JSON.parse(analytics)
+    } catch (error) {
+      console.error("Error fetching analytics:", error)
+      throw new Error("Failed to fetch analytics")
+    }
+  }
+
+  static async runABTest(promptId: string, version1Id: string, version2Id: string): Promise<any> {
+    try {
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "system",
+            content: `You are an advanced AI assistant specializing in A/B testing. Your task is to run an A/B test on two versions of a prompt and provide the results.`,
+          },
+          {
+            role: "user",
+            content: `Run an A/B test for the prompt with ID: ${promptId} comparing version ${version1Id} and version ${version2Id}`,
+          },
+        ],
+        temperature: 0.3,
+      })
+
+      const abTestResults = response.choices[0]?.message?.content
+      if (!abTestResults) throw new Error("No A/B test results generated")
+
+      return JSON.parse(abTestResults)
+    } catch (error) {
+      console.error("Error running A/B test:", error)
+      throw new Error("Failed to run A/B test")
+    }
+  }
 }
