@@ -2,6 +2,21 @@ import { AIService } from "@/lib/services/ai.service"
 import { getToken } from "next-auth/jwt"
 import { NextRequest, NextResponse } from "next/server"
 
+/**
+ * Handles A/B testing for prompts via an HTTP POST request.
+ *
+ * @remarks
+ * This endpoint requires authentication and validates the presence of required parameters.
+ *
+ * @param req - The incoming Next.js request object
+ * @returns A JSON response containing A/B test results or an error status
+ *
+ * @throws {NextResponse} 401 Unauthorized if no valid user token is present
+ * @throws {NextResponse} 400 Bad Request if required parameters are missing
+ * @throws {NextResponse} 500 Internal Server Error if A/B test execution fails
+ *
+ * @beta
+ */
 export async function POST(req: NextRequest) {
   try {
     const token = await getToken({ req })

@@ -2,6 +2,21 @@ import { VersionService } from "@/lib/services/version.service";
 import { getToken } from "next-auth/jwt";
 import { NextRequest, NextResponse } from "next/server";
 
+/**
+ * Handles the reversion of a prompt to a specific version.
+ *
+ * @remarks
+ * This endpoint allows authenticated users to set a specific version as the active version for a prompt.
+ *
+ * @param req - The incoming Next.js request object
+ * @returns A JSON response with the updated prompt or an error status
+ *
+ * @throws {NextResponse} 401 Unauthorized if no valid token is present
+ * @throws {NextResponse} 400 Bad Request if no version ID is provided
+ * @throws {NextResponse} 500 Internal Server Error if version reversion fails
+ *
+ * @beta
+ */
 export async function POST(req: NextRequest) {
   try {
     const token = await getToken({ req });
